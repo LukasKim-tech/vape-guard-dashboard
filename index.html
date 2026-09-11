@@ -838,7 +838,7 @@ canvas {
 .toast.error { border-color: rgba(255, 69, 58, 0.4); }
 
 /* ===== 최초 설정 화면 ===== */
-#setupOverlay {
+#setupOverlay, #loginOverlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(10,10,12,.92); backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center; padding: 24px;
@@ -1096,97 +1096,102 @@ canvas {
   <button class="test-btn" id="testAlarmBtn">🚨 알람 테스트</button>
 
   <div class="setting-section" style="margin-top:20px;">
-    <div class="setting-label"><span>🔗 서버 주소</span></div>
-    <div class="setting-desc" id="serverUrlText"
-         style="word-break:break-all;font-family:'JetBrains Mono',monospace;font-size:10px;">-</div>
-    <button class="test-btn" id="changeUrlBtn"
-            style="margin-top:10px;background:rgba(255,255,255,.06);">주소 변경</button>
+    <div class="setting-label">
+      <span>👤 계정</span>
+      <span class="setting-value" id="accountName">-</span>
+    </div>
+    <button class="test-btn" id="logoutBtn"
+            style="margin-top:10px;background:rgba(255,69,58,.14);">로그아웃</button>
   </div>
 </div>
 
 <script src="config.js"></script>
 <script>
 // ============================================
-// 설정
+// 🔐 인증
 // ============================================
-// 서버 주소는 세 곳에서 찾습니다.
-//   1. config.js       — 로컬에서 파일로 열 때
-//   2. #url=... 프래그먼트 — 링크로 한 번에 설정할 때 (읽고 나면 주소창에서 지웁니다)
-//   3. localStorage    — 이 브라우저에 저장해둔 값
-// 어디에도 없으면 입력 화면을 띄웁니다.
-// 이 덕분에 페이지 자체에는 서버 주소가 들어있지 않아, 공개 호스팅해도 안전합니다.
-const API_URL_KEY = 'vapeGuardApiUrl';
+// Apps Script 주소는 페이지에 포함됩니다. 대신 read/setcmd 가 로그인 토큰을
+// 요구하므로, 주소만 알아도 데이터를 보거나 기기를 제어할 수 없습니다.
+const API_URL = window.VAPE_GUARD_API_URL ||
+  "https://script.google.com/macros/s/AKfycbxMgPvyBkgdwT6_5ky4kDBrmmsn31fah2NimJGcLo7vuJ7UaczU3TNSAZ98Ht2i8EEzDg/exec";
 
-function readStoredUrl() {
-  try { return localStorage.getItem(API_URL_KEY) || ""; } catch (e) { return ""; }
-}
-function storeUrl(u) {
-  try { localStorage.setItem(API_URL_KEY, u); } catch (e) {}
-}
-function resolveApiUrl() {
-  if (window.VAPE_GUARD_API_URL) return window.VAPE_GUARD_API_URL;
-  const m = location.hash.match(/[#&]url=([^&]*)/);
-  if (m && m[1]) {
-    const u = decodeURIComponent(m[1]);
-    storeUrl(u);
-    history.replaceState(null, '', location.pathname + location.search);
-    return u;
-  }
-  return readStoredUrl();
-}
+let refreshTimer = null;   // showLogin 이 먼저 참조하므로 여기서 선언
 
-let API_URL = resolveApiUrl();
+const TOKEN_KEY = 'vapeGuardToken';
+const USER_KEY  = 'vapeGuardUser';
 
-function isValidEndpoint(u) {
-  return /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u.trim());
+function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
+function setAuth(token, id) {
+  try { localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(USER_KEY, id || ""); } catch (e) {}
 }
+function clearAuth() {
+  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch (e) {}
+}
+function currentUser() { try { return localStorage.getItem(USER_KEY) || ""; } catch (e) { return ""; } }
 
-function showSetup(message) {
-  if (document.getElementById('setupOverlay')) return;
+function showLogin(message) {
+  if (document.getElementById('loginOverlay')) return;
+  if (refreshTimer) clearInterval(refreshTimer);
+
   const el = document.createElement('div');
-  el.id = 'setupOverlay';
+  el.id = 'loginOverlay';
   el.innerHTML =
     '<div class="setup-box">' +
       '<div class="setup-icon">🛡</div>' +
       '<div class="setup-title">VAPE GUARD</div>' +
-      '<div class="setup-sub">' + (message || '서버 주소를 입력하면 대시보드가 연결됩니다.') + '</div>' +
-      '<input id="setupInput" class="setup-input" spellcheck="false" ' +
-        'placeholder="https://script.google.com/macros/s/.../exec">' +
-      '<div id="setupError" class="setup-error"></div>' +
-      '<button id="setupBtn" class="setup-btn">연결하기</button>' +
-      '<div class="setup-note">Apps Script 배포 URL입니다. 이 브라우저에만 저장되며 어디로도 전송되지 않습니다.</div>' +
+      '<div class="setup-sub">' + (message || '로그인이 필요합니다.') + '</div>' +
+      '<input id="loginId" class="setup-input" spellcheck="false" autocomplete="username" placeholder="아이디">' +
+      '<input id="loginPw" class="setup-input" type="password" autocomplete="current-password" ' +
+        'placeholder="비밀번호" style="margin-top:10px;">' +
+      '<div id="loginError" class="setup-error"></div>' +
+      '<button id="loginBtn" class="setup-btn">로그인</button>' +
+      '<div class="setup-note">계정은 관리자가 Apps Script에서 만듭니다.</div>' +
     '</div>';
   document.body.appendChild(el);
 
-  const input = document.getElementById('setupInput');
-  const err = document.getElementById('setupError');
-  input.value = readStoredUrl();
-  input.focus();
+  const idEl = document.getElementById('loginId');
+  const pwEl = document.getElementById('loginPw');
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  idEl.value = currentUser();
+  (idEl.value ? pwEl : idEl).focus();
 
-  function submit() {
-    const u = input.value.trim();
-    if (!isValidEndpoint(u)) {
-      err.textContent = 'https://script.google.com/macros/s/.../exec 형식이어야 합니다.';
-      return;
+  async function submit() {
+    const id = idEl.value.trim(), pw = pwEl.value;
+    if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+
+    btn.disabled = true; btn.textContent = '확인 중…'; errEl.textContent = '';
+    try {
+      const r = await fetch(API_URL + '?action=login&id=' + encodeURIComponent(id) +
+                            '&pw=' + encodeURIComponent(pw) + '&t=' + Date.now());
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || '로그인 실패');
+      setAuth(d.token, d.id);
+      el.remove();
+      fetchData();
+      restartInterval();
+    } catch (e) {
+      errEl.textContent = e.message;
+      pwEl.value = '';
+      pwEl.focus();
+    } finally {
+      btn.disabled = false; btn.textContent = '로그인';
     }
-    storeUrl(u);
-    API_URL = u;
-    el.remove();
-    fetchData();
-    restartInterval();
   }
-  document.getElementById('setupBtn').addEventListener('click', submit);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  btn.addEventListener('click', submit);
+  [idEl, pwEl].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
 }
 
-if (!API_URL) {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('connStatus').textContent = '● 설정 필요';
-    document.getElementById('liveDot').classList.add('offline');
-    showSetup();
-  });
+async function doLogout() {
+  const t = getToken();
+  clearAuth();
+  if (t) { try { await fetch(API_URL + '?action=logout&token=' + encodeURIComponent(t)); } catch (e) {} }
+  location.reload();
 }
 
+// ============================================
+// 설정
+// ============================================
 let settings = {
   threshold: 1500,
   volume: 70,
@@ -1557,12 +1562,15 @@ function updateUI(data) {
 // 데이터 가져오기
 // ============================================
 async function fetchData() {
-  if (!API_URL) return;   // 서버 주소 미설정 시 폴링 중단
+  const token = getToken();
+  if (!token) { showLogin(); return; }
   try {
-    const r = await fetch(API_URL + '?action=read&t=' + Date.now());
+    const r = await fetch(API_URL + '?action=read&token=' + encodeURIComponent(token) +
+                          '&t=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
 
+    if (data.needLogin) { clearAuth(); showLogin('세션이 만료되었습니다. 다시 로그인해 주세요.'); return; }
     if (data.error) throw new Error(data.error);
 
     document.getElementById('liveDot').classList.remove('offline');
@@ -1656,17 +1664,13 @@ document.getElementById('testAlarmBtn').addEventListener('click', () => {
   setTimeout(() => banner.classList.remove('show'), 3000);
 });
 
-// 서버 주소 표시 / 변경
+// 계정 표시 / 로그아웃
 function refreshServerUrlText() {
-  const el = document.getElementById('serverUrlText');
-  if (!el) return;
-  el.textContent = API_URL
-    ? API_URL.replace(/^https:\/\/script\.google\.com\/macros\/s\//, '…/').slice(0, 60) + '…'
-    : '설정되지 않음';
+  const el = document.getElementById('accountName');
+  if (el) el.textContent = currentUser() || '-';
 }
-document.getElementById('changeUrlBtn').addEventListener('click', () => {
-  document.getElementById('settingsPanel').classList.remove('open');
-  showSetup('새 Apps Script 배포 URL을 입력하세요.');
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  if (confirm('로그아웃할까요?')) doLogout();
 });
 
 // 차트 리사이즈
@@ -1689,11 +1693,11 @@ function showToast(text, icon = '✓', type = 'success') {
 }
 
 async function sendCommand(cmd, label) {
-  if (!API_URL) { showToast('서버 주소가 설정되지 않았습니다', '⚙', 'error'); return; }
+  const token = getToken();
+  if (!token) { showLogin(); return; }
   try {
-    // 시트의 I1 셀에 명령어 쓰기 (writeData가 아닌 별도 방법 필요)
-    // 가장 간단한 방법: writeData에 command 파라미터 추가
-    const r = await fetch(API_URL + '?action=setcmd&cmd=' + cmd);
+    const r = await fetch(API_URL + '?action=setcmd&cmd=' + cmd +
+                          '&token=' + encodeURIComponent(token));
     showToast(`✅ ${label} 명령 전송됨! 20초 이내 실행`, '🎮', 'success');
   } catch (e) {
     showToast('❌ 명령 전송 실패: ' + e.message, '⚠', 'error');
@@ -1717,15 +1721,20 @@ document.getElementById('resetBaseBtn').addEventListener('click', () => {
 });
 
 // 자동 새로고침
-let refreshTimer = null;
 function restartInterval() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(fetchData, settings.refreshInterval * 1000);
 }
 
-// 시작!
-fetchData();
-restartInterval();
+// 시작! — 토큰이 없으면 로그인 화면부터
+if (getToken()) {
+  fetchData();
+  restartInterval();
+} else {
+  document.getElementById('connStatus').textContent = '● 로그인 필요';
+  document.getElementById('liveDot').classList.add('offline');
+  showLogin();
+}
 </script>
 </body>
 </html>
