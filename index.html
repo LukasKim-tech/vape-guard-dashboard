@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAPE GUARD · Real-time Air Quality Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0: #050510;
+  --bg-1: #0a0a14;
+  --bg-2: #14142b;
+  --green: #00d4aa;
+  --teal: #00b4ff;
+  --yellow: #ffd60a;
+  --orange: #ff9f0a;
+  --red: #ff453a;
+  --pink: #ff2d92;
+  --purple: #bf5af2;
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --text: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.5);
+  --text-faint: rgba(255, 255, 255, 0.3);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg-0);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Animated background blobs */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.3;
+  z-index: -1;
+  pointer-events: none;
+  animation: float 20s infinite ease-in-out;
+}
+body::before {
+  background: radial-gradient(circle, var(--green), transparent);
+  top: -200px; left: -200px;
+}
+body::after {
+  background: radial-gradient(circle, var(--purple), transparent);
+  bottom: -200px; right: -200px;
+  animation-delay: -10s;
+}
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(100px, -50px) scale(1.1); }
+  66% { transform: translate(-50px, 100px) scale(0.9); }
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  position: relative;
+}
+
+/* === HEADER === */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--green), var(--teal));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 8px 32px rgba(0, 212, 170, 0.4);
+}
+
+.brand-text .name {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-text .tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 1.5s infinite;
+}
+.live-dot.offline { background: var(--red); animation: none; }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7); }
+  50% { opacity: 0.5; box-shadow: 0 0 0 8px rgba(0, 212, 170, 0); }
+}
+
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+  color: var(--text);
+}
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+.icon-btn.active {
+  background: linear-gradient(135deg, var(--green), var(--teal));
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(0, 212, 170, 0.4);
+}
+
+/* === HERO SECTION === */
+.hero {
+  position: relative;
+  background: var(--card-bg);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--card-border);
+  border-radius: 32px;
+  padding: 48px 40px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(0, 212, 170, 0.15), transparent 50%);
+  pointer-events: none;
+}
+
+.hero.alert {
+  background: rgba(255, 69, 58, 0.1);
+  border-color: rgba(255, 69, 58, 0.3);
+  animation: alert-glow 1.2s infinite;
+}
+.hero.alert::before {
+  background: radial-gradient(circle at 50% 50%, rgba(255, 69, 58, 0.3), transparent 70%);
+}
+@keyframes alert-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.5), inset 0 0 0 1px rgba(255, 69, 58, 0.3); }
+  50% { box-shadow: 0 0 40px 10px rgba(255, 69, 58, 0.3), inset 0 0 0 2px rgba(255, 69, 58, 0.8); }
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 48px;
+  align-items: center;
+  position: relative;
+}
+
+.hero-main .label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 100px;
+  border: 1px solid var(--card-border);
+}
+
+.tvoc-display {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tvoc-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 120px;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -4px;
+  color: var(--green);
+  transition: color 0.4s ease;
+  text-shadow: 0 0 60px currentColor;
+}
+.tvoc-value.y { color: var(--yellow); }
+.tvoc-value.o { color: var(--orange); }
+.tvoc-value.r { color: var(--red); }
+
+.tvoc-unit {
+  font-size: 24px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.tvoc-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 12px currentColor;
+}
+.status-indicator.y { background: var(--yellow); }
+.status-indicator.o { background: var(--orange); }
+.status-indicator.r { background: var(--red); animation: pulse-dot 1s infinite; }
+
+/* Gauge ring */
+.gauge {
+  position: relative;
+  width: 240px;
+  height: 240px;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 16;
+}
+
+.gauge-fg {
+  fill: none;
+  stroke: url(#gaugeGrad);
+  stroke-width: 16;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gauge-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.gauge-percent {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.gauge-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* === STATS GRID === */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat {
+  background: var(--card-bg);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 60px; height: 60px;
+  background: radial-gradient(circle, currentColor, transparent 70%);
+  opacity: 0.15;
+  filter: blur(20px);
+}
+
+.stat:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.stat-icon {
+  font-size: 20px;
+  margin-bottom: 12px;
+  opacity: 0.7;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 6px;
+}
+
+.stat.alert-card { color: var(--red); }
+.stat.eco2-card { color: var(--teal); }
+.stat.base-card { color: var(--purple); }
+.stat.peak-card { color: var(--orange); }
+
+/* === CHART CARD === */
+.chart-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.card-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+canvas {
+  width: 100% !important;
+  height: 280px !important;
+}
+
+/* === LOG CARD === */
+.log-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(30px);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.log-list::-webkit-scrollbar { width: 6px; }
+.log-list::-webkit-scrollbar-track { background: transparent; }
+.log-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+
+.log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.log-item.alert {
+  background: rgba(255, 69, 58, 0.08);
+  border-color: rgba(255, 69, 58, 0.2);
+}
+
+.log-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(4px);
+}
+
+.log-left { display: flex; align-items: center; gap: 12px; }
+
+.log-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.log-item.alert .log-icon {
+  background: rgba(255, 69, 58, 0.15);
+}
+
+.log-info .device {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.log-info .time {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.log-right { text-align: right; }
+
+.log-tvoc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.log-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.badge-alert { background: rgba(255, 69, 58, 0.15); color: var(--red); }
+.badge-ok { background: rgba(0, 212, 170, 0.15); color: var(--green); }
+
+/* === SETTINGS PANEL === */
+.settings-panel {
+  position: fixed;
+  top: 0; right: 0;
+  width: 400px;
+  height: 100vh;
+  background: rgba(10, 10, 20, 0.95);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-left: 1px solid var(--card-border);
+  padding: 32px;
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.settings-panel.open { transform: translateX(0); }
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.settings-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
+
+.setting-section {
+  margin-bottom: 32px;
+}
+
+.setting-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.setting-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--green), var(--teal));
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 212, 170, 0.4);
+}
+
+.toggle {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.toggle.on { background: linear-gradient(135deg, var(--green), var(--teal)); }
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.toggle.on::after { transform: translateX(22px); }
+
+.setting-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.test-btn {
+  width: 100%;
+  padding: 14px;
+  background: rgba(255, 69, 58, 0.15);
+  border: 1px solid rgba(255, 69, 58, 0.3);
+  border-radius: 12px;
+  color: var(--red);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.test-btn:hover {
+  background: rgba(255, 69, 58, 0.25);
+  transform: translateY(-2px);
+}
+
+/* === ALERT BANNER === */
+.alert-banner {
+  position: fixed;
+  top: 24px; left: 50%;
+  transform: translateX(-50%) translateY(-200%);
+  background: linear-gradient(135deg, #ff453a, #ff2d92);
+  color: white;
+  padding: 20px 32px;
+  border-radius: 100px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 20px 60px rgba(255, 69, 58, 0.5);
+  z-index: 999;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+}
+
+.alert-banner.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+.alert-banner-icon {
+  font-size: 24px;
+  animation: shake 0.5s infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .gauge { margin: 0 auto; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .tvoc-value { font-size: 80px; }
+  .settings-panel { width: 100%; }
+}
+
+@media (max-width: 500px) {
+  .container { padding: 20px 16px; }
+  .header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .tvoc-value { font-size: 64px; }
+  .hero { padding: 32px 24px; }
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.05) 0%,
+    rgba(255,255,255,0.1) 50%,
+    rgba(255,255,255,0.05) 100%);
+  background-size: 200% 100%;
+  animation: skeleton 1.5s infinite;
+}
+@keyframes skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+/* Remote command buttons */
+.cmd-btn {
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.cmd-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+.cmd-btn.restart {
+  background: rgba(255, 69, 58, 0.15);
+  border-color: rgba(255, 69, 58, 0.3);
+  color: var(--red);
+}
+.cmd-btn.restart:hover {
+  background: rgba(255, 69, 58, 0.25);
+  box-shadow: 0 4px 16px rgba(255, 69, 58, 0.3);
+}
+.cmd-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(200%);
+  background: rgba(20, 20, 40, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+.toast.success { border-color: rgba(0, 212, 170, 0.4); }
+.toast.error { border-color: rgba(255, 69, 58, 0.4); }
+
+/* ===== 최초 설정 화면 ===== */
+#setupOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(10,10,12,.92); backdrop-filter: blur(20px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.setup-box {
+  width: 100%; max-width: 460px; text-align: center;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 24px; padding: 40px 32px;
+}
+.setup-icon { font-size: 48px; margin-bottom: 12px; }
+.setup-title {
+  font-size: 24px; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px;
+  background: linear-gradient(135deg,#00d4aa,#0a84ff,#bf5af2);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.setup-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.6; }
+.setup-input {
+  width: 100%; box-sizing: border-box; padding: 14px 16px;
+  background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px; color: #fff; font-size: 13px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace; outline: none;
+}
+.setup-input:focus { border-color: #00d4aa; }
+.setup-error { color: #ff453a; font-size: 12px; min-height: 18px; margin-top: 8px; }
+.setup-btn {
+  width: 100%; margin-top: 8px; padding: 14px; border: none; border-radius: 12px;
+  background: linear-gradient(135deg,#00d4aa,#0a84ff); color: #fff;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.setup-btn:active { transform: scale(.98); }
+.setup-note { margin-top: 18px; font-size: 11px; color: var(--text-faint); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- Alert Banner -->
+<div class="alert-banner" id="alertBanner">
+  <span class="alert-banner-icon">🚨</span>
+  <span id="alertBannerText">VAPE DETECTED</span>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✓</span>
+  <span id="toastText">메시지</span>
+</div>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">🛡</div>
+      <div class="brand-text">
+        <div class="name">VAPE GUARD</div>
+        <div class="tag">Real-time Air Quality Monitor</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="live-dot" id="liveDot"></div>
+        <span id="connStatus">CONNECTING...</span>
+      </div>
+      <button class="icon-btn" id="muteBtn" title="알람 음소거">🔊</button>
+      <button class="icon-btn" id="settingsBtn" title="설정">⚙</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-main">
+        <div class="label">📡 TVOC · Volatile Organic Compounds</div>
+        <div class="tvoc-display">
+          <div class="tvoc-value g" id="tvocValue">--</div>
+          <div class="tvoc-unit">ppb</div>
+        </div>
+        <div class="tvoc-status">
+          <div class="status-indicator g" id="statusInd"></div>
+          <span id="statusText">데이터 로딩 중...</span>
+        </div>
+      </div>
+
+      <!-- Gauge -->
+      <div class="gauge">
+        <svg class="gauge-svg" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d4aa"/>
+              <stop offset="50%" stop-color="#00b4ff"/>
+              <stop offset="100%" stop-color="#bf5af2"/>
+            </linearGradient>
+          </defs>
+          <circle class="gauge-bg" cx="100" cy="100" r="84"/>
+          <circle class="gauge-fg" id="gaugeFg" cx="100" cy="100" r="84"
+                  stroke-dasharray="528" stroke-dashoffset="528"/>
+        </svg>
+        <div class="gauge-text">
+          <div class="gauge-percent" id="gaugePercent">0%</div>
+          <div class="gauge-label">of Threshold</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats">
+    <div class="stat eco2-card">
+      <div class="stat-icon">💨</div>
+      <div class="stat-label">eCO2</div>
+      <div class="stat-value" id="eco2Value">--</div>
+      <div class="stat-sub">ppm</div>
+    </div>
+    <div class="stat base-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-label">Baseline</div>
+      <div class="stat-value" id="baseValue">--</div>
+      <div class="stat-sub">ppb · 평상시 기준값</div>
+    </div>
+    <div class="stat peak-card">
+      <div class="stat-icon">📈</div>
+      <div class="stat-label">Peak Today</div>
+      <div class="stat-value" id="peakValue">--</div>
+      <div class="stat-sub">ppb · 오늘 최고값</div>
+    </div>
+    <div class="stat alert-card">
+      <div class="stat-icon">🚨</div>
+      <div class="stat-label">Alerts Today</div>
+      <div class="stat-value" id="alertCount">--</div>
+      <div class="stat-sub" id="lastAlertTime">아직 없음</div>
+    </div>
+  </div>
+
+  <!-- Uptime + Control Card -->
+  <div class="grid-2" style="margin-bottom:24px;">
+    <div class="card" style="display:flex;align-items:center;gap:20px;">
+      <div style="font-size:40px;">⏱</div>
+      <div style="flex:1;">
+        <div class="small-label">SYSTEM UPTIME</div>
+        <div class="small-value g" id="uptimeValue">-- <span style="font-size:14px;opacity:.5">분</span></div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:4px;" id="uptimeStatus">대기 중...</div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:16px;">
+      <div style="font-size:40px;">🎮</div>
+      <div style="flex:1;">
+        <div class="small-label">REMOTE CONTROL</div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button class="cmd-btn restart" id="restartBtn">🔄 재시작</button>
+          <button class="cmd-btn" id="testAlertCmdBtn">🚨 알림 테스트</button>
+          <button class="cmd-btn" id="resetBaseBtn">📊 기준값 리셋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">📈 실시간 TVOC 추이</div>
+        <div class="card-sub">최근 200개 측정 · Threshold Line 포함</div>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#00d4aa"></div>
+          <span>TVOC</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ff453a"></div>
+          <span>Threshold</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ff2d92"></div>
+          <span>Alert</span>
+        </div>
+      </div>
+    </div>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <!-- Log -->
+  <div class="log-card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">📋 최근 활동</div>
+        <div class="card-sub">알림 + 측정 기록</div>
+      </div>
+    </div>
+    <div class="log-list" id="logList">
+      <div class="empty">
+        <div class="empty-icon">⏳</div>
+        <div>데이터 로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Settings Panel -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <div class="settings-title">⚙ 설정</div>
+    <button class="close-btn" id="closeSettings">✕</button>
+  </div>
+
+  <div class="setting-section">
+    <div class="setting-label">
+      <span>🎯 알람 임계값 (Threshold)</span>
+      <span class="setting-value" id="thresholdValue">1500 ppb</span>
+    </div>
+    <input type="range" class="slider" id="thresholdSlider"
+           min="300" max="10000" step="100" value="1500">
+    <div class="setting-desc">
+      TVOC가 이 값을 초과하면 알람이 울립니다. 권장: 1500 ppb (초기 가설값).
+      실험으로 환경에 맞게 조정하세요.
+    </div>
+  </div>
+
+  <div class="setting-section">
+    <div class="setting-label">
+      <span>🔊 알람 음량</span>
+      <span class="setting-value" id="volumeValue">70%</span>
+    </div>
+    <input type="range" class="slider" id="volumeSlider"
+           min="0" max="100" step="5" value="70">
+    <div class="setting-desc">
+      알람 소리 크기를 조절합니다.
+    </div>
+  </div>
+
+  <div class="setting-section">
+    <div class="setting-label">
+      <span>🔔 브라우저 알림</span>
+      <div class="toggle on" id="notifToggle"></div>
+    </div>
+    <div class="setting-desc">
+      탭이 백그라운드일 때도 시스템 알림으로 알려줍니다.
+    </div>
+  </div>
+
+  <div class="setting-section">
+    <div class="setting-label">
+      <span>🔁 자동 새로고침 주기</span>
+      <span class="setting-value" id="refreshValue">10초</span>
+    </div>
+    <input type="range" class="slider" id="refreshSlider"
+           min="5" max="60" step="5" value="10">
+    <div class="setting-desc">
+      Google Sheets에서 데이터를 가져오는 주기.
+      너무 짧으면 API 할당량 초과 가능.
+    </div>
+  </div>
+
+  <button class="test-btn" id="testAlarmBtn">🚨 알람 테스트</button>
+
+  <div class="setting-section" style="margin-top:20px;">
+    <div class="setting-label"><span>🔗 서버 주소</span></div>
+    <div class="setting-desc" id="serverUrlText"
+         style="word-break:break-all;font-family:'JetBrains Mono',monospace;font-size:10px;">-</div>
+    <button class="test-btn" id="changeUrlBtn"
+            style="margin-top:10px;background:rgba(255,255,255,.06);">주소 변경</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+// ============================================
+// 설정
+// ============================================
+// 서버 주소는 세 곳에서 찾습니다.
+//   1. config.js       — 로컬에서 파일로 열 때
+//   2. #url=... 프래그먼트 — 링크로 한 번에 설정할 때 (읽고 나면 주소창에서 지웁니다)
+//   3. localStorage    — 이 브라우저에 저장해둔 값
+// 어디에도 없으면 입력 화면을 띄웁니다.
+// 이 덕분에 페이지 자체에는 서버 주소가 들어있지 않아, 공개 호스팅해도 안전합니다.
+const API_URL_KEY = 'vapeGuardApiUrl';
+
+function readStoredUrl() {
+  try { return localStorage.getItem(API_URL_KEY) || ""; } catch (e) { return ""; }
+}
+function storeUrl(u) {
+  try { localStorage.setItem(API_URL_KEY, u); } catch (e) {}
+}
+function resolveApiUrl() {
+  if (window.VAPE_GUARD_API_URL) return window.VAPE_GUARD_API_URL;
+  const m = location.hash.match(/[#&]url=([^&]*)/);
+  if (m && m[1]) {
+    const u = decodeURIComponent(m[1]);
+    storeUrl(u);
+    history.replaceState(null, '', location.pathname + location.search);
+    return u;
+  }
+  return readStoredUrl();
+}
+
+let API_URL = resolveApiUrl();
+
+function isValidEndpoint(u) {
+  return /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u.trim());
+}
+
+function showSetup(message) {
+  if (document.getElementById('setupOverlay')) return;
+  const el = document.createElement('div');
+  el.id = 'setupOverlay';
+  el.innerHTML =
+    '<div class="setup-box">' +
+      '<div class="setup-icon">🛡</div>' +
+      '<div class="setup-title">VAPE GUARD</div>' +
+      '<div class="setup-sub">' + (message || '서버 주소를 입력하면 대시보드가 연결됩니다.') + '</div>' +
+      '<input id="setupInput" class="setup-input" spellcheck="false" ' +
+        'placeholder="https://script.google.com/macros/s/.../exec">' +
+      '<div id="setupError" class="setup-error"></div>' +
+      '<button id="setupBtn" class="setup-btn">연결하기</button>' +
+      '<div class="setup-note">Apps Script 배포 URL입니다. 이 브라우저에만 저장되며 어디로도 전송되지 않습니다.</div>' +
+    '</div>';
+  document.body.appendChild(el);
+
+  const input = document.getElementById('setupInput');
+  const err = document.getElementById('setupError');
+  input.value = readStoredUrl();
+  input.focus();
+
+  function submit() {
+    const u = input.value.trim();
+    if (!isValidEndpoint(u)) {
+      err.textContent = 'https://script.google.com/macros/s/.../exec 형식이어야 합니다.';
+      return;
+    }
+    storeUrl(u);
+    API_URL = u;
+    el.remove();
+    fetchData();
+    restartInterval();
+  }
+  document.getElementById('setupBtn').addEventListener('click', submit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+if (!API_URL) {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('connStatus').textContent = '● 설정 필요';
+    document.getElementById('liveDot').classList.add('offline');
+    showSetup();
+  });
+}
+
+let settings = {
+  threshold: 1500,
+  volume: 70,
+  notifications: true,
+  refreshInterval: 10
+};
+
+// localStorage에서 복원
+try {
+  const saved = localStorage.getItem('vapeGuardSettings');
+  if (saved) settings = { ...settings, ...JSON.parse(saved) };
+} catch(e) {}
+
+function saveSettings() {
+  localStorage.setItem('vapeGuardSettings', JSON.stringify(settings));
+}
+
+// ============================================
+// 알람 시스템 (Web Audio API)
+// ============================================
+let audioCtx = null;
+let alarmPlaying = false;
+let alarmTimeout = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playAlarm() {
+  if (alarmPlaying) return;
+  if (document.getElementById('muteBtn').dataset.muted === '1') return;
+
+  initAudio();
+  alarmPlaying = true;
+
+  const ctx = audioCtx;
+  const startTime = ctx.currentTime;
+  const duration = 3.0;
+
+  // 사이렌 효과: 두 개의 오실레이터
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  osc1.type = 'sine';
+  osc2.type = 'triangle';
+  filter.type = 'lowpass';
+  filter.frequency.value = 2000;
+
+  // 사이렌처럼 주파수가 오르락내리락
+  for (let i = 0; i < 6; i++) {
+    const t = startTime + i * 0.5;
+    osc1.frequency.setValueAtTime(800, t);
+    osc1.frequency.exponentialRampToValueAtTime(1200, t + 0.25);
+    osc1.frequency.exponentialRampToValueAtTime(800, t + 0.5);
+    osc2.frequency.setValueAtTime(400, t);
+    osc2.frequency.exponentialRampToValueAtTime(600, t + 0.25);
+    osc2.frequency.exponentialRampToValueAtTime(400, t + 0.5);
+  }
+
+  const volume = settings.volume / 100 * 0.3;
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(volume, startTime + 0.05);
+  gain.gain.setValueAtTime(volume, startTime + duration - 0.2);
+  gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc1.start(startTime);
+  osc2.start(startTime);
+  osc1.stop(startTime + duration);
+  osc2.stop(startTime + duration);
+
+  // 진동 (모바일)
+  if (navigator.vibrate) {
+    navigator.vibrate([300, 100, 300, 100, 300]);
+  }
+
+  setTimeout(() => { alarmPlaying = false; }, duration * 1000);
+}
+
+// ============================================
+// 차트 그리기
+// ============================================
+let chartData = [];
+
+function drawChart() {
+  const c = document.getElementById('chart');
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.width = c.offsetWidth * dpr;
+  const h = c.height = c.offsetHeight * dpr;
+
+  ctx.clearRect(0, 0, w, h);
+  if (chartData.length < 2) return;
+
+  const padding = 30 * dpr;
+  const innerW = w - padding * 2;
+  const innerH = h - padding * 2;
+
+  const tvocs = chartData.map(d => d.tvoc);
+  const max = Math.max(...tvocs, settings.threshold * 1.2, 500);
+  const min = 0;
+
+  // 격자
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1 * dpr;
+  for (let i = 0; i <= 5; i++) {
+    const y = padding + (innerH * i / 5);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(padding + innerW, y);
+    ctx.stroke();
+  }
+
+  // Y축 라벨
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = `${10 * dpr}px JetBrains Mono`;
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const value = max - (max * i / 5);
+    const y = padding + (innerH * i / 5);
+    ctx.fillText(Math.round(value).toLocaleString(), padding - 8 * dpr, y + 4 * dpr);
+  }
+
+  // Threshold 라인
+  const thresholdY = padding + innerH * (1 - settings.threshold / max);
+  ctx.strokeStyle = 'rgba(255, 69, 58, 0.6)';
+  ctx.lineWidth = 2 * dpr;
+  ctx.setLineDash([8 * dpr, 4 * dpr]);
+  ctx.beginPath();
+  ctx.moveTo(padding, thresholdY);
+  ctx.lineTo(padding + innerW, thresholdY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(255, 69, 58, 0.8)';
+  ctx.font = `bold ${10 * dpr}px JetBrains Mono`;
+  ctx.textAlign = 'left';
+  ctx.fillText('THRESHOLD ' + settings.threshold, padding + 8 * dpr, thresholdY - 8 * dpr);
+
+  // 데이터 라인
+  const pts = chartData.map((d, i) => ({
+    x: padding + (i / Math.max(1, chartData.length - 1)) * innerW,
+    y: padding + innerH * (1 - d.tvoc / max),
+    alert: d.alert
+  }));
+
+  // 그라데이션 영역
+  const grad = ctx.createLinearGradient(0, padding, 0, padding + innerH);
+  grad.addColorStop(0, 'rgba(0, 212, 170, 0.4)');
+  grad.addColorStop(1, 'rgba(0, 212, 170, 0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, padding + innerH);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, padding + innerH);
+  ctx.closePath();
+  ctx.fill();
+
+  // 라인
+  ctx.strokeStyle = '#00d4aa';
+  ctx.lineWidth = 2.5 * dpr;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  // 알림 마커
+  pts.forEach((p, i) => {
+    if (p.alert) {
+      ctx.fillStyle = '#ff2d92';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 45, 146, 0.3)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 12 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // 마지막 점 (현재값) 강조
+  const last = pts[pts.length - 1];
+  ctx.fillStyle = last.alert ? '#ff2d92' : '#00d4aa';
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 6 * dpr, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2 * dpr;
+  ctx.stroke();
+}
+
+// ============================================
+// UI 업데이트
+// ============================================
+let lastAlertTime = 0;
+
+function getColorClass(tvoc) {
+  if (tvoc >= settings.threshold) return 'r';
+  if (tvoc >= settings.threshold * 0.7) return 'o';
+  if (tvoc >= settings.threshold * 0.3) return 'y';
+  return 'g';
+}
+
+function getStatus(tvoc, baseline) {
+  if (tvoc >= settings.threshold) return '🚨 ALERT · 임계값 초과!';
+  if (tvoc >= settings.threshold * 0.7) return '⚠ 경고 · 임계값 접근';
+  if (tvoc >= settings.threshold * 0.3) return '⚡ 주의 · 평소보다 높음';
+  return '✓ 정상 범위';
+}
+
+function formatRelativeTime(date) {
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return `${diff}초 전`;
+  if (diff < 3600) return `${Math.floor(diff/60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}시간 전`;
+  return date.toLocaleDateString('ko-KR');
+}
+
+function updateUI(data) {
+  if (!data || !data.rows || data.rows.length === 0) {
+    document.getElementById('logList').innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div>아직 데이터가 없어요.<br>ESP32에서 데이터 전송 대기 중...</div></div>';
+    return;
+  }
+
+  const { rows, stats } = data;
+  chartData = rows;
+
+  const tvoc = stats.currentTvoc || 0;
+  const cls = getColorClass(tvoc);
+
+  // TVOC 값
+  const tvocEl = document.getElementById('tvocValue');
+  tvocEl.textContent = tvoc.toLocaleString();
+  tvocEl.className = 'tvoc-value ' + cls;
+
+  // 게이지
+  const percent = Math.min(100, Math.round((tvoc / settings.threshold) * 100));
+  const dashOffset = 528 - (528 * percent / 100);
+  document.getElementById('gaugeFg').style.strokeDashoffset = dashOffset;
+  document.getElementById('gaugePercent').textContent = percent + '%';
+
+  // 상태
+  document.getElementById('statusText').textContent = getStatus(tvoc, stats.currentBase);
+  const ind = document.getElementById('statusInd');
+  ind.className = 'status-indicator ' + cls;
+
+  // 알림 (임계값 초과)
+  const hero = document.getElementById('hero');
+  const banner = document.getElementById('alertBanner');
+  const isAlerting = tvoc >= settings.threshold;
+
+  if (isAlerting) {
+    hero.classList.add('alert');
+    banner.classList.add('show');
+    document.getElementById('alertBannerText').textContent =
+      `VAPE DETECTED · ${tvoc.toLocaleString()} ppb`;
+
+    // 알람 트리거 (30초 쿨다운)
+    if (Date.now() - lastAlertTime > 30000) {
+      playAlarm();
+
+      if (settings.notifications && Notification.permission === 'granted') {
+        new Notification('🚨 전자담배 감지!', {
+          body: `TVOC: ${tvoc.toLocaleString()} ppb (임계값 ${settings.threshold} ppb 초과)`,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23ff453a"/></svg>'
+        });
+      }
+
+      lastAlertTime = Date.now();
+    }
+  } else {
+    hero.classList.remove('alert');
+    banner.classList.remove('show');
+  }
+
+  // 통계
+  document.getElementById('eco2Value').textContent = (stats.currentEco2 || 0).toLocaleString();
+  document.getElementById('baseValue').textContent = (stats.currentBase || 0).toLocaleString();
+
+  const peakToday = Math.max(...rows.filter(r => {
+    const today = new Date(); today.setHours(0,0,0,0);
+    return new Date(r.time) >= today;
+  }).map(r => r.tvoc), 0);
+  document.getElementById('peakValue').textContent = peakToday.toLocaleString();
+
+  document.getElementById('alertCount').textContent = stats.todayAlerts || 0;
+
+  const lastAlert = [...rows].reverse().find(r => r.alert);
+  if (lastAlert) {
+    document.getElementById('lastAlertTime').textContent =
+      '마지막: ' + formatRelativeTime(new Date(lastAlert.time));
+  }
+
+  // Uptime 표시
+  const uptime = stats.currentUptime || 0;
+  const uptimeEl = document.getElementById('uptimeValue');
+  let uptimeStr, uptimeUnit;
+  if (uptime < 60) {
+    uptimeStr = uptime;
+    uptimeUnit = '분';
+  } else if (uptime < 1440) {
+    uptimeStr = (uptime / 60).toFixed(1);
+    uptimeUnit = '시간';
+  } else {
+    uptimeStr = (uptime / 1440).toFixed(1);
+    uptimeUnit = '일';
+  }
+  uptimeEl.innerHTML = `${uptimeStr} <span style="font-size:14px;opacity:.5">${uptimeUnit}</span>`;
+
+  // 마지막 업데이트 기준 연결 상태 판단
+  if (stats.lastUpdate) {
+    const lastT = new Date(stats.lastUpdate);
+    const ageSec = (new Date() - lastT) / 1000;
+    const statusEl = document.getElementById('uptimeStatus');
+    if (ageSec < 30) {
+      statusEl.textContent = '🟢 정상 가동 중';
+      statusEl.style.color = '#00d4aa';
+    } else if (ageSec < 120) {
+      statusEl.textContent = '🟡 최근 ' + Math.floor(ageSec) + '초 동안 응답 없음';
+      statusEl.style.color = '#ffd60a';
+    } else {
+      statusEl.textContent = '🔴 ' + formatRelativeTime(lastT) + ' 이후 응답 없음!';
+      statusEl.style.color = '#ff453a';
+    }
+  }
+
+  // 차트
+  drawChart();
+
+  // 로그 (최근 알림 우선, 그 다음 최근 측정)
+  const recent = [...rows].reverse().slice(0, 20);
+  const logHtml = recent.map(r => {
+    const t = new Date(r.time);
+    const icon = r.alert ? '🚨' : '📊';
+    const badge = r.alert ? 'badge-alert' : 'badge-ok';
+    const badgeText = r.alert ? 'ALERT' : 'OK';
+    const tvocColor = getColorClass(r.tvoc);
+    return `
+      <div class="log-item ${r.alert ? 'alert' : ''}">
+        <div class="log-left">
+          <div class="log-icon">${icon}</div>
+          <div class="log-info">
+            <div class="device">📍 ${r.device || 'Unknown'}</div>
+            <div class="time">${t.toLocaleString('ko-KR', {hour:'2-digit', minute:'2-digit', second:'2-digit'})} · ${formatRelativeTime(t)}</div>
+          </div>
+        </div>
+        <div class="log-right">
+          <div class="log-tvoc ${tvocColor}">${r.tvoc.toLocaleString()} ppb</div>
+          <span class="log-badge ${badge}">${badgeText}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('logList').innerHTML = logHtml ||
+    '<div class="empty"><div class="empty-icon">✓</div><div>모두 정상</div></div>';
+}
+
+// ============================================
+// 데이터 가져오기
+// ============================================
+async function fetchData() {
+  if (!API_URL) return;   // 서버 주소 미설정 시 폴링 중단
+  try {
+    const r = await fetch(API_URL + '?action=read&t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('liveDot').classList.remove('offline');
+    document.getElementById('connStatus').textContent = '● LIVE';
+
+    updateUI(data);
+  } catch (e) {
+    console.error('Fetch error:', e);
+    document.getElementById('liveDot').classList.add('offline');
+    document.getElementById('connStatus').textContent = '● 연결 실패';
+  }
+}
+
+// ============================================
+// 이벤트 핸들러
+// ============================================
+
+// 설정 패널
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  document.getElementById('settingsPanel').classList.add('open');
+  refreshServerUrlText();
+  initAudio(); // 사용자 인터랙션 시 오디오 초기화
+});
+document.getElementById('closeSettings').addEventListener('click', () => {
+  document.getElementById('settingsPanel').classList.remove('open');
+});
+
+// 슬라이더
+const thresholdSlider = document.getElementById('thresholdSlider');
+thresholdSlider.value = settings.threshold;
+document.getElementById('thresholdValue').textContent = settings.threshold + ' ppb';
+thresholdSlider.addEventListener('input', e => {
+  settings.threshold = parseInt(e.target.value);
+  document.getElementById('thresholdValue').textContent = settings.threshold + ' ppb';
+  saveSettings();
+  drawChart();
+});
+
+const volumeSlider = document.getElementById('volumeSlider');
+volumeSlider.value = settings.volume;
+document.getElementById('volumeValue').textContent = settings.volume + '%';
+volumeSlider.addEventListener('input', e => {
+  settings.volume = parseInt(e.target.value);
+  document.getElementById('volumeValue').textContent = settings.volume + '%';
+  saveSettings();
+});
+
+const refreshSlider = document.getElementById('refreshSlider');
+refreshSlider.value = settings.refreshInterval;
+document.getElementById('refreshValue').textContent = settings.refreshInterval + '초';
+refreshSlider.addEventListener('input', e => {
+  settings.refreshInterval = parseInt(e.target.value);
+  document.getElementById('refreshValue').textContent = settings.refreshInterval + '초';
+  saveSettings();
+  restartInterval();
+});
+
+// 알림 토글
+const notifToggle = document.getElementById('notifToggle');
+if (settings.notifications) notifToggle.classList.add('on');
+else notifToggle.classList.remove('on');
+notifToggle.addEventListener('click', () => {
+  settings.notifications = !settings.notifications;
+  if (settings.notifications) {
+    notifToggle.classList.add('on');
+    if (Notification.permission === 'default') Notification.requestPermission();
+  } else {
+    notifToggle.classList.remove('on');
+  }
+  saveSettings();
+});
+
+// 음소거
+const muteBtn = document.getElementById('muteBtn');
+muteBtn.dataset.muted = '0';
+muteBtn.addEventListener('click', () => {
+  const muted = muteBtn.dataset.muted === '1';
+  muteBtn.dataset.muted = muted ? '0' : '1';
+  muteBtn.textContent = muted ? '🔊' : '🔇';
+  if (!muted) muteBtn.classList.remove('active');
+  else muteBtn.classList.add('active');
+});
+
+// 알람 테스트
+document.getElementById('testAlarmBtn').addEventListener('click', () => {
+  initAudio();
+  playAlarm();
+  const banner = document.getElementById('alertBanner');
+  document.getElementById('alertBannerText').textContent = 'TEST · 알람 시스템 작동 중';
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 3000);
+});
+
+// 서버 주소 표시 / 변경
+function refreshServerUrlText() {
+  const el = document.getElementById('serverUrlText');
+  if (!el) return;
+  el.textContent = API_URL
+    ? API_URL.replace(/^https:\/\/script\.google\.com\/macros\/s\//, '…/').slice(0, 60) + '…'
+    : '설정되지 않음';
+}
+document.getElementById('changeUrlBtn').addEventListener('click', () => {
+  document.getElementById('settingsPanel').classList.remove('open');
+  showSetup('새 Apps Script 배포 URL을 입력하세요.');
+});
+
+// 차트 리사이즈
+window.addEventListener('resize', () => drawChart());
+
+// 알림 권한 요청
+if (Notification.permission === 'default') {
+  setTimeout(() => Notification.requestPermission(), 2000);
+}
+
+// ============================================
+// 🎮 원격 명령 전송
+// ============================================
+function showToast(text, icon = '✓', type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastIcon').textContent = icon;
+  toast.className = 'toast show ' + type;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+async function sendCommand(cmd, label) {
+  if (!API_URL) { showToast('서버 주소가 설정되지 않았습니다', '⚙', 'error'); return; }
+  try {
+    // 시트의 I1 셀에 명령어 쓰기 (writeData가 아닌 별도 방법 필요)
+    // 가장 간단한 방법: writeData에 command 파라미터 추가
+    const r = await fetch(API_URL + '?action=setcmd&cmd=' + cmd);
+    showToast(`✅ ${label} 명령 전송됨! 20초 이내 실행`, '🎮', 'success');
+  } catch (e) {
+    showToast('❌ 명령 전송 실패: ' + e.message, '⚠', 'error');
+  }
+}
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+  if (confirm('정말 ESP32를 재시작할까요?\n약 20초 후 실행됩니다.')) {
+    sendCommand('RESTART', '재시작');
+  }
+});
+
+document.getElementById('testAlertCmdBtn').addEventListener('click', () => {
+  sendCommand('TEST_ALERT', '알림 테스트');
+});
+
+document.getElementById('resetBaseBtn').addEventListener('click', () => {
+  if (confirm('기준값(Baseline)을 초기화할까요?\n새로 학습 시작합니다.')) {
+    sendCommand('RESET_BASE', '기준값 리셋');
+  }
+});
+
+// 자동 새로고침
+let refreshTimer = null;
+function restartInterval() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(fetchData, settings.refreshInterval * 1000);
+}
+
+// 시작!
+fetchData();
+restartInterval();
+</script>
+</body>
+</html>
