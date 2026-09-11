@@ -1,33 +1,39 @@
-# 🛡 Vape Guard — 대시보드
+# Vape Guard — Dashboard
 
-ESP32 + SGP30 전자담배 감지 시스템의 웹 대시보드입니다.
+Live cigarette smoke monitoring for a dorm room, built on an ESP32 with an SGP30
+air quality sensor.
 
-**👉 https://lukaskim-tech.github.io/vape-guard-dashboard/**
+**https://lukaskim-tech.github.io/vape-guard-dashboard/**
 
-## 로그인
+## Signing in
 
-아이디와 비밀번호로 로그인합니다. 계정은 관리자가 Apps Script 편집기에서
-`SETUP_계정만들기` 함수로 발급합니다. 회원가입 기능은 없습니다.
+The dashboard needs an account. The first person to open it creates the admin
+account; after that, admins add everyone else from Settings → People. There is
+no public sign-up.
 
-로그인은 14일간 유지되며, 로그아웃은 ⚙ → 로그아웃.
+Sessions last 14 days.
 
-## 보안
+## What it shows
 
-- 페이지에 Apps Script 주소가 들어 있지만, 데이터 조회(`read`)와 기기 제어(`setcmd`)는
-  **유효한 로그인 토큰이 있어야만** 동작합니다. 주소만으로는 아무것도 할 수 없습니다.
-- 비밀번호는 계정마다 다른 솔트와 함께 SHA-256으로 1,000회 반복 해시해 저장합니다.
-  원문은 어디에도 저장되지 않습니다.
-- 기기(ESP32)가 데이터를 쓸 때도 별도의 기기 토큰을 사용합니다.
+The page leads with one word — **Clear**, **Elevated**, **Warning**, **Smoke** —
+because that is the only thing worth knowing at a glance. The background is the
+reading itself: a field of drifting particles that stays almost colourless at
+rest and turns turbulent and red the moment smoke is detected.
 
-## 기능
+Below that: eCO₂, the learned baseline, today's peak, today's alarms, and device
+uptime, then the last 200 readings and a log of the last 20.
 
-- TVOC 실시간 표시 + 임계값 대비 게이지
-- 최근 200개 측정 차트 (임계값 라인 + 알람 마커)
-- 알람 시 사이렌 · 브라우저 알림 · 진동
-- SYSTEM UPTIME 모니터링
-- 원격 제어: 재시작 / 알림 테스트 / 기준값 리셋
+Admins can also restart the device, trigger a test alarm, or make the sensor
+relearn its baseline.
 
-## 소스
+## Security
 
-펌웨어·백엔드·3D 케이스를 포함한 전체 소스는 비공개 저장소에 있습니다.
-이 저장소는 정적 대시보드 배포용입니다.
+The Apps Script URL is in this page, which is fine: reading data and controlling
+the device both require a session token, so the URL alone grants nothing.
+Passwords are stored salted and hashed, never in the clear. The device
+authenticates separately with its own token.
+
+## Source
+
+This repository holds only the dashboard. The firmware, backend and enclosure
+live in a private repository.

@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VAPE GUARD</title>
+<title>Vape Guard · Cigarette smoke monitor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   VAPE GUARD — "숨 쉬는 계측기"
-   배경의 공기 장(場)이 측정값 그 자체입니다.
-   평소엔 거의 무채색, 감지될 때만 색이 터집니다.
+   VAPE GUARD — an instrument that breathes.
+   The air field behind the page IS the reading: almost colourless
+   at rest, turbulent and red the moment smoke is detected.
    ============================================================ */
 :root {
   --ink:    #080C0B;
@@ -23,12 +23,12 @@
   --haze:   #7E918B;
   --faint:  #4A5955;
 
-  --calm:   #CFE8DC;   /* 정상 — 창백한 세이지 */
-  --note:   #9FD9C0;   /* 주의 */
-  --rise:   #F0C070;   /* 경고 — 따뜻한 호박색 */
-  --alarm:  #FF4D3D;   /* 감지 — 유일하게 채도 높은 색 */
+  --calm:   #CFE8DC;   /* clear — pale sage */
+  --note:   #9FD9C0;   /* elevated */
+  --rise:   #F0C070;   /* warning — warm amber */
+  --alarm:  #FF4D3D;   /* smoke — the only saturated colour on the page */
 
-  --state:  var(--calm);  /* 현재 상태색. JS가 바꿉니다 */
+  --state:  var(--calm);  /* current state colour; JS swaps it */
 
   --pad: clamp(20px, 5vw, 64px);
 }
@@ -38,7 +38,7 @@
 html { -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: 'IBM Plex Sans KR', 'IBM Plex Mono', system-ui, sans-serif;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   background: var(--ink);
   color: var(--clear);
   min-height: 100vh;
@@ -48,13 +48,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 계측 표기는 모노 — 라틴·숫자 전용이라 자간을 줘도 안전합니다.
-   한글에는 자간을 주지 않습니다. 자모가 흩어져 보이기 때문입니다. */
-.mono, .eyebrow, .cell .k, .reading, .context, .conn, .mark,
-.head .note, .row, .topbar {
-  font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-}
-.ko { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; letter-spacing: 0; }
 
 ::selection { background: var(--state); color: var(--ink); }
 
@@ -64,7 +57,7 @@ body {
   border-radius: 2px;
 }
 
-/* ── 공기 장 (시그니처) ─────────────────────────── */
+/* ── air field — the signature ─────────────────── */
 #airfield {
   position: fixed;
   inset: 0;
@@ -72,7 +65,7 @@ body {
   pointer-events: none;
 }
 
-/* 감지 시 화면 가장자리가 맥동합니다 */
+/* the edge of the screen pulses when smoke is detected */
 #vignette {
   position: fixed;
   inset: 0;
@@ -88,7 +81,7 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
 
 .shell { position: relative; z-index: 2; }
 
-/* ── 상단 바 ────────────────────────────────────── */
+/* ── top bar ───────────────────────────────────── */
 .topbar {
   display: flex;
   align-items: center;
@@ -147,7 +140,7 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
 }
 .gear:hover { color: var(--clear); border-color: var(--clear); }
 
-/* ── 히어로: 상태 단어가 주인공 ──────────────────── */
+/* ── hero — the state word leads ───────────────── */
 .hero {
   padding: clamp(48px, 9vh, 96px) var(--pad) clamp(36px, 6vh, 64px);
   text-align: center;
@@ -162,11 +155,11 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
 }
 
 .state {
-  font-family: 'IBM Plex Sans KR', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: clamp(54px, 13vw, 156px);
-  line-height: 0.9;
-  letter-spacing: -0.045em;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(56px, 14vw, 168px);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
   color: var(--state);
   text-transform: uppercase;
   transition: color 1s ease;
@@ -206,7 +199,7 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
 }
 .context b { color: var(--clear); font-weight: 500; }
 
-/* ── 측정 스트립 ────────────────────────────────── */
+/* ── measurement strip ─────────────────────────── */
 .strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -234,7 +227,7 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
 }
 .cell .v small { font-size: 10px; color: var(--faint); margin-left: 3px; }
 
-/* ── 섹션 공통 ──────────────────────────────────── */
+/* ── sections ──────────────────────────────────── */
 .section { padding: clamp(34px, 7vh, 64px) var(--pad); }
 .section + .section { border-top: 1px solid var(--line); }
 
@@ -245,9 +238,10 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
   margin-bottom: 26px;
 }
 .head h2 {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
   color: var(--clear);
 }
 .head .note {
@@ -256,10 +250,10 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
   letter-spacing: 0.08em;
 }
 
-/* ── 차트 ───────────────────────────────────────── */
+/* ── chart ─────────────────────────────────────── */
 #chart { width: 100%; height: clamp(170px, 26vh, 260px); display: block; }
 
-/* ── 기록 ───────────────────────────────────────── */
+/* ── readings log ──────────────────────────────── */
 .log { border-top: 1px solid var(--line-2); }
 .row {
   display: grid;
@@ -290,7 +284,7 @@ body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infini
   font-size: 11px;
 }
 
-/* ── 설정 패널 ──────────────────────────────────── */
+/* ── settings panel ────────────────────────────── */
 .panel {
   position: fixed;
   top: 0; right: 0; bottom: 0;
@@ -367,7 +361,8 @@ input[type=range]::-moz-range-thumb {
   border-radius: 3px;
   color: var(--clear);
   font-family: inherit; font-size: 11px;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: border-color .2s, color .2s, background .2s;
 }
@@ -379,7 +374,7 @@ input[type=range]::-moz-range-thumb {
 
 .cmds { display: grid; gap: 8px; margin-top: 14px; }
 
-/* ── 계정 ───────────────────────────────────────── */
+/* ── people ────────────────────────────────────── */
 .users { margin: 14px 0; display: flex; flex-direction: column; gap: 1px; }
 .user {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -388,7 +383,7 @@ input[type=range]::-moz-range-thumb {
 .user .uid { font-size: 12px; }
 .user .meta { font-size: 9px; color: var(--faint); margin-top: 3px; letter-spacing: 0.06em; }
 .chip {
-  font-size: 9px; letter-spacing: 0;
+  font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
   padding: 2px 6px; border: 1px solid var(--line); border-radius: 2px;
   color: var(--haze); margin-left: 7px;
 }
@@ -414,7 +409,7 @@ select.field { cursor: pointer; }
 
 .err { color: var(--alarm); font-size: 10px; min-height: 15px; margin-top: 7px; letter-spacing: 0.04em; }
 
-/* ── 게이트 (로그인 / 최초 등록) ─────────────────── */
+/* ── gate — sign in / first account ────────────── */
 .gate {
   position: fixed; inset: 0; z-index: 60;
   background: color-mix(in srgb, var(--ink) 92%, transparent);
@@ -430,9 +425,9 @@ select.field { cursor: pointer; }
   color: var(--haze); margin-bottom: 26px;
 }
 .gate h1 {
-  font-family: 'IBM Plex Sans KR', system-ui, sans-serif;
-  font-weight: 700; font-size: 28px; line-height: 1.25;
-  letter-spacing: -0.035em; margin-bottom: 12px;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 800; font-size: 32px; line-height: 1.1;
+  letter-spacing: -0.03em; margin-bottom: 12px;
 }
 .gate p { font-size: 11px; color: var(--haze); line-height: 1.7; margin-bottom: 22px; }
 .gate .btn { margin-top: 14px; }
@@ -441,7 +436,7 @@ select.field { cursor: pointer; }
   line-height: 1.7; letter-spacing: 0.04em;
 }
 
-/* ── 토스트 ─────────────────────────────────────── */
+/* ── toast ─────────────────────────────────────── */
 #toast {
   position: fixed; left: 50%; bottom: 26px;
   transform: translate(-50%, 20px);
@@ -455,7 +450,7 @@ select.field { cursor: pointer; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 #toast.bad { border-color: color-mix(in srgb, var(--alarm) 50%, transparent); color: var(--alarm); }
 
-/* ── 등장 시퀀스 ────────────────────────────────── */
+/* ── entrance sequence ─────────────────────────── */
 .rise { opacity: 0; transform: translateY(12px); }
 body.ready .rise { animation: rise .85s cubic-bezier(.2,.7,.3,1) forwards; }
 @keyframes rise { to { opacity: 1; transform: none; } }
@@ -469,7 +464,7 @@ body.ready .d5 { animation-delay: .49s; }
 body.ready .draw { animation: draw 1.1s cubic-bezier(.4,0,.1,1) .2s forwards; }
 @keyframes draw { to { transform: scaleX(1); } }
 
-/* ── 반응형 ─────────────────────────────────────── */
+/* ── responsive ────────────────────────────────── */
 @media (max-width: 760px) {
   .strip { grid-template-columns: repeat(2, 1fr); }
   .cell { border-left: none; border-top: 1px solid var(--line-2); }
@@ -482,7 +477,7 @@ body.ready .draw { animation: draw 1.1s cubic-bezier(.4,0,.1,1) .2s forwards; }
   .eyebrow { letter-spacing: 0.32em; }
 }
 
-/* ── 모션 최소화 ────────────────────────────────── */
+/* ── reduced motion ────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;
@@ -505,106 +500,106 @@ body.ready .draw { animation: draw 1.1s cubic-bezier(.4,0,.1,1) .2s forwards; }
     <div class="mark"><span class="beacon" id="beacon"></span> Vape Guard</div>
     <div class="spacer"></div>
     <div class="room" id="room">—</div>
-    <div class="conn ko" id="conn">연결 중</div>
-    <button class="gear" id="gearBtn" aria-label="설정 열기">⚙</button>
+    <div class="conn" id="conn">Connecting</div>
+    <button class="gear" id="gearBtn" aria-label="Open settings">⚙</button>
   </header>
 
   <section class="hero">
-    <div class="eyebrow rise d1">TVOC<span class="long"> · Total Volatile Organic Compounds</span></div>
-    <div class="state ko rise d2" id="state">대기 중</div>
+    <div class="eyebrow rise d1">Cigarette smoke<span class="long"> · measured as TVOC in parts per billion</span></div>
+    <div class="state rise d2" id="state">Waiting</div>
     <div class="reading rise d3">
       <span id="tvoc">—</span><span class="unit">ppb</span>
     </div>
-    <div class="context ko rise d4" id="context">측정값을 기다리는 중입니다</div>
+    <div class="context rise d4" id="context">Waiting for the first reading</div>
   </section>
 
   <div class="strip rise d5">
     <div class="cell"><div class="k">eCO₂</div><div class="v" id="eco2">—<small>ppm</small></div></div>
     <div class="cell"><div class="k">Baseline</div><div class="v" id="base">—<small>ppb</small></div></div>
     <div class="cell"><div class="k">Peak today</div><div class="v" id="peak">—<small>ppb</small></div></div>
-    <div class="cell"><div class="k">Alerts today</div><div class="v" id="alerts">—<small>회</small></div></div>
+    <div class="cell"><div class="k">Alarms today</div><div class="v" id="alerts">—<small>today</small></div></div>
     <div class="cell"><div class="k">Uptime</div><div class="v" id="uptime">—</div></div>
   </div>
 
   <section class="section">
     <div class="head">
-      <h2 class="ko">측정 추이</h2>
-      <span class="note ko" id="chartNote">최근 200회</span>
+      <h2>Reading history</h2>
+      <span class="note" id="chartNote">last 200</span>
     </div>
     <canvas id="chart"></canvas>
   </section>
 
   <section class="section">
     <div class="head">
-      <h2 class="ko">최근 기록</h2>
-      <span class="note ko">20회</span>
+      <h2>Recent readings</h2>
+      <span class="note">last 20</span>
     </div>
-    <div class="log" id="log"><div class="empty">불러오는 중</div></div>
+    <div class="log" id="log"><div class="empty">Loading</div></div>
   </section>
 
 </div>
 
-<!-- 설정 -->
-<aside class="panel" id="panel" aria-label="설정">
+<!-- settings -->
+<aside class="panel" id="panel" aria-label="Settings">
   <div class="panel-head">
-    <h3>설정</h3>
-    <button class="x" id="closePanel" aria-label="설정 닫기">✕</button>
+    <h3>Settings</h3>
+    <button class="x" id="closePanel" aria-label="Close settings">✕</button>
   </div>
 
   <div class="block">
-    <div class="lbl"><span>감지 임계값</span><span class="val" id="thVal">1500 ppb</span></div>
+    <div class="lbl"><span>Alarm threshold</span><span class="val" id="thVal">1500 ppb</span></div>
     <input type="range" id="thSlider" min="300" max="10000" step="100" value="1500">
-    <div class="desc">이 값을 넘으면 알람이 울립니다. 권장 1,500 ppb — 아직 실측으로 검증되지 않은 가설값입니다.</div>
+    <div class="desc">The alarm sounds above this level. 1,500 ppb is a starting guess — test it with real smoke and adjust.</div>
   </div>
 
   <div class="block">
-    <div class="lbl"><span>알람 음량</span><span class="val" id="volVal">70%</span></div>
+    <div class="lbl"><span>Alarm volume</span><span class="val" id="volVal">70%</span></div>
     <input type="range" id="volSlider" min="0" max="100" step="5" value="70">
   </div>
 
   <div class="block">
-    <div class="lbl"><span>새로고침 주기</span><span class="val" id="refVal">10초</span></div>
+    <div class="lbl"><span>Refresh every</span><span class="val" id="refVal">10s</span></div>
     <input type="range" id="refSlider" min="5" max="60" step="5" value="10">
   </div>
 
   <div class="block">
-    <div class="lbl"><span>브라우저 알림</span><div class="toggle on" id="notifToggle" role="switch" tabindex="0"></div></div>
-    <div class="desc">다른 탭을 보고 있을 때도 시스템 알림으로 알려줍니다.</div>
+    <div class="lbl"><span>Browser notifications</span><div class="toggle on" id="notifToggle" role="switch" tabindex="0"></div></div>
+    <div class="desc">Get notified even when this tab is in the background.</div>
   </div>
 
   <div class="block">
-    <div class="lbl"><span>소리</span><div class="toggle on" id="soundToggle" role="switch" tabindex="0"></div></div>
-    <button class="btn" id="testAlarm" style="margin-top:14px;">알람 소리 들어보기</button>
+    <div class="lbl"><span>Sound</span><div class="toggle on" id="soundToggle" role="switch" tabindex="0"></div></div>
+    <button class="btn" id="testAlarm" style="margin-top:14px;">Play the alarm</button>
   </div>
 
   <div class="block">
-    <div class="lbl"><span>기기 제어</span></div>
-    <div class="desc">명령은 20초 안에 전달되며, 5분이 지나면 폐기됩니다.</div>
+    <div class="lbl"><span>Device</span></div>
+    <div class="desc">The device picks up commands within 20 seconds. Anything older than five minutes is discarded.</div>
     <div class="cmds">
-      <button class="btn" id="cmdTest">알림 테스트</button>
-      <button class="btn" id="cmdBase">기준값 다시 학습</button>
-      <button class="btn warn" id="cmdRestart">기기 재시작</button>
+      <button class="btn" id="cmdTest">Test the alarm</button>
+      <button class="btn" id="cmdBase">Relearn baseline</button>
+      <button class="btn warn" id="cmdRestart">Restart device</button>
     </div>
   </div>
 
   <div class="block">
-    <div class="lbl"><span>계정</span><span class="val" id="who">—</span></div>
-    <button class="btn" id="pwBtn" style="margin-top:14px;">비밀번호 변경</button>
-    <button class="btn warn" id="outBtn">로그아웃</button>
+    <div class="lbl"><span>Account</span><span class="val" id="who">—</span></div>
+    <button class="btn" id="pwBtn" style="margin-top:14px;">Change password</button>
+    <button class="btn warn" id="outBtn">Sign out</button>
   </div>
 
   <div class="block" id="adminBlock" hidden>
-    <div class="lbl"><span>계정 관리</span></div>
-    <div class="desc">이 대시보드에 접속할 수 있는 사람들입니다.</div>
-    <div class="users" id="users">불러오는 중</div>
-    <input class="field" id="newId" spellcheck="false" placeholder="새 아이디">
-    <input class="field" id="newPw" type="password" placeholder="비밀번호 (8자 이상)">
+    <div class="lbl"><span>People</span></div>
+    <div class="desc">Everyone who can open this dashboard.</div>
+    <div class="users" id="users">Loading</div>
+    <input class="field" id="newId" spellcheck="false" placeholder="Username">
+    <input class="field" id="newPw" type="password" placeholder="Password (8 characters or more)">
     <select class="field" id="newRole">
-      <option value="viewer">보기 전용</option>
-      <option value="admin">관리자</option>
+      <option value="viewer">View only</option>
+      <option value="admin">Admin</option>
     </select>
     <div class="err" id="addErr"></div>
-    <button class="btn go" id="addBtn">계정 추가</button>
+    <button class="btn go" id="addBtn">Add person</button>
   </div>
 </aside>
 
@@ -613,10 +608,10 @@ body.ready .draw { animation: draw 1.1s cubic-bezier(.4,0,.1,1) .2s forwards; }
 <script src="config.js"></script>
 <script>
 // ============================================
-// 🔐 인증
+// Auth
 // ============================================
-// Apps Script 주소는 페이지에 포함됩니다. 대신 read/setcmd 가 로그인 토큰을
-// 요구하므로, 주소만 알아도 데이터를 보거나 기기를 제어할 수 없습니다.
+// The Apps Script URL ships in this page. That is safe because read and
+// setcmd both require a session token, so the URL alone grants nothing.
 const API_URL = window.VAPE_GUARD_API_URL ||
   "https://script.google.com/macros/s/AKfycbxMgPvyBkgdwT6_5ky4kDBrmmsn31fah2NimJGcLo7vuJ7UaczU3TNSAZ98Ht2i8EEzDg/exec";
 
@@ -646,13 +641,13 @@ function clearAuth() {
   } catch (e) {}
 }
 
-/** 계정이 하나도 없으면 "계정 만들기", 있으면 "로그인" */
+/** No accounts yet -> offer to create the first one. Otherwise sign in. */
 async function showAuthGate() {
   let needSetup = false;
   try {
     const r = await fetch(API_URL + '?action=status&t=' + Date.now());
     needSetup = !!(await r.json()).needSetup;
-  } catch (e) { /* 서버가 응답 없으면 로그인 화면으로 */ }
+  } catch (e) { /* server unreachable - fall through to sign in */ }
   needSetup ? showRegister() : showLogin();
 }
 
@@ -677,14 +672,14 @@ function showRegister() {
   if (refreshTimer) clearInterval(refreshTimer);
 
   const el = gateShell(
-    '첫 계정을<br>만들어 주세요',
-    '아직 계정이 없습니다. 처음 만드는 계정이 관리자가 됩니다.',
-    '<input class="field" id="rId" spellcheck="false" autocomplete="username" placeholder="아이디">' +
-    '<input class="field" id="rPw" type="password" autocomplete="new-password" placeholder="비밀번호 (8자 이상)">' +
-    '<input class="field" id="rPw2" type="password" autocomplete="new-password" placeholder="비밀번호 확인">' +
+    'Create the<br>first account',
+    'No one has an account yet. The first account becomes the admin.',
+    '<input class="field" id="rId" spellcheck="false" autocomplete="username" placeholder="Username">' +
+    '<input class="field" id="rPw" type="password" autocomplete="new-password" placeholder="Password (8 characters or more)">' +
+    '<input class="field" id="rPw2" type="password" autocomplete="new-password" placeholder="Repeat password">' +
     '<div class="err" id="rErr"></div>' +
-    '<button class="btn go" id="rBtn">만들고 시작하기</button>',
-    '이 화면은 계정이 하나도 없을 때만 나타납니다. 계정이 생기면 다시 열리지 않습니다.'
+    '<button class="btn go" id="rBtn">Create and continue</button>',
+    'This screen appears only while no account exists. Once one does, it never opens again.'
   );
 
   const id = el.querySelector('#rId'), pw = el.querySelector('#rPw'),
@@ -694,23 +689,23 @@ function showRegister() {
 
   async function go() {
     err.textContent = '';
-    if (!id.value.trim() || !pw.value) { err.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
-    if (pw.value.length < 8) { err.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
-    if (pw.value !== pw2.value) { err.textContent = '두 비밀번호가 다릅니다.'; return; }
+    if (!id.value.trim() || !pw.value) { err.textContent = 'Enter a username and password.'; return; }
+    if (pw.value.length < 8) { err.textContent = 'Use at least 8 characters.'; return; }
+    if (pw.value !== pw2.value) { err.textContent = 'The two passwords do not match.'; return; }
 
-    btn.disabled = true; btn.textContent = '만드는 중';
+    btn.disabled = true; btn.textContent = 'Creating';
     try {
       const r = await fetch(API_URL + '?action=register&id=' + encodeURIComponent(id.value.trim()) +
                             '&pw=' + encodeURIComponent(pw.value) + '&t=' + Date.now());
       const d = await r.json();
-      if (!d.ok) throw new Error(d.error || '계정을 만들지 못했습니다');
+      if (!d.ok) throw new Error(d.error || 'Could not create the account');
       setAuth(d.token, d.id, d.role);
       el.remove();
       start();
     } catch (e) {
       err.textContent = e.message;
     } finally {
-      btn.disabled = false; btn.textContent = '만들고 시작하기';
+      btn.disabled = false; btn.textContent = 'Create and continue';
     }
   }
   btn.addEventListener('click', go);
@@ -722,13 +717,13 @@ function showLogin(message) {
   if (refreshTimer) clearInterval(refreshTimer);
 
   const el = gateShell(
-    '로그인',
-    message || '이 대시보드는 계정이 있어야 볼 수 있습니다.',
-    '<input class="field" id="lId" spellcheck="false" autocomplete="username" placeholder="아이디">' +
-    '<input class="field" id="lPw" type="password" autocomplete="current-password" placeholder="비밀번호">' +
+    'Sign in',
+    message || 'This dashboard needs an account.',
+    '<input class="field" id="lId" spellcheck="false" autocomplete="username" placeholder="Username">' +
+    '<input class="field" id="lPw" type="password" autocomplete="current-password" placeholder="Password">' +
     '<div class="err" id="lErr"></div>' +
-    '<button class="btn go" id="lBtn">들어가기</button>',
-    '계정이 필요하면 관리자에게 발급받으세요.'
+    '<button class="btn go" id="lBtn">Sign in</button>',
+    'Ask an admin to create an account for you.'
   );
 
   const id = el.querySelector('#lId'), pw = el.querySelector('#lPw'),
@@ -738,14 +733,14 @@ function showLogin(message) {
 
   async function go() {
     err.textContent = '';
-    if (!id.value.trim() || !pw.value) { err.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+    if (!id.value.trim() || !pw.value) { err.textContent = 'Enter a username and password.'; return; }
 
-    btn.disabled = true; btn.textContent = '확인 중';
+    btn.disabled = true; btn.textContent = 'Checking';
     try {
       const r = await fetch(API_URL + '?action=login&id=' + encodeURIComponent(id.value.trim()) +
                             '&pw=' + encodeURIComponent(pw.value) + '&t=' + Date.now());
       const d = await r.json();
-      if (!d.ok) throw new Error(d.error || '로그인하지 못했습니다');
+      if (!d.ok) throw new Error(d.error || 'Could not sign in');
       setAuth(d.token, d.id, d.role);
       el.remove();
       start();
@@ -753,7 +748,7 @@ function showLogin(message) {
       err.textContent = e.message;
       pw.value = ''; pw.focus();
     } finally {
-      btn.disabled = false; btn.textContent = '들어가기';
+      btn.disabled = false; btn.textContent = 'Sign in';
     }
   }
   btn.addEventListener('click', go);
@@ -768,7 +763,7 @@ async function doLogout() {
 }
 
 // ============================================
-// 설정
+// Settings
 // ============================================
 let settings = { threshold: 1500, volume: 70, notifications: true, sound: true, refreshInterval: 10 };
 try {
@@ -780,13 +775,13 @@ function saveSettings() {
 }
 
 // ============================================
-// 상태 판정 — 숫자가 아니라 "단어"가 주인공입니다
+// State - a word leads, the number supports it
 // ============================================
 const STATES = [
-  { at: 1.00, word: '감지됨',   tone: 'var(--alarm)', key: 'detected' },
-  { at: 0.70, word: '경고',     tone: 'var(--rise)',  key: 'warning'  },
-  { at: 0.30, word: '상승',     tone: 'var(--note)',  key: 'elevated' },
-  { at: 0.00, word: '깨끗함',   tone: 'var(--calm)',  key: 'clear'    }
+  { at: 1.00, word: 'Smoke',    tone: 'var(--alarm)', key: 'detected' },
+  { at: 0.70, word: 'Warning',  tone: 'var(--rise)',  key: 'warning'  },
+  { at: 0.30, word: 'Elevated', tone: 'var(--note)',  key: 'elevated' },
+  { at: 0.00, word: 'Clear',    tone: 'var(--calm)',  key: 'clear'    }
 ];
 function stateFor(tvoc) {
   const ratio = tvoc / Math.max(1, settings.threshold);
@@ -794,9 +789,9 @@ function stateFor(tvoc) {
 }
 
 // ============================================
-// 시그니처 — 공기 장
-// 보이지 않는 공기를 보이게 만듭니다.
-// TVOC 가 오르면 입자가 많아지고 빨라지고 색이 변합니다.
+// The signature: a field of air.
+// Smoke is invisible, so the page draws it. As TVOC climbs the particles
+// speed up, crowd together and change colour.
 // ============================================
 const field = (() => {
   const cv = document.getElementById('airfield');
@@ -828,7 +823,7 @@ const field = (() => {
   }
 
   function draw() {
-    intensity += (target - intensity) * 0.02;   // 부드럽게 따라갑니다
+    intensity += (target - intensity) * 0.02;   // ease toward the reading
     ctx.clearRect(0, 0, w, h);
 
     const speed = 1 + intensity * 4.5;
@@ -875,7 +870,7 @@ const TONE_RGB = {
 };
 
 // ============================================
-// 알람
+// Alarm
 // ============================================
 let audioCtx = null, alarmPlaying = false;
 
@@ -921,7 +916,7 @@ function playAlarm() {
 }
 
 // ============================================
-// 차트 — 액자 없는 얇은 선 하나
+// Chart - one hairline, no frame
 // ============================================
 let chartData = [];
 
@@ -937,9 +932,9 @@ function drawChart() {
   const padT = 22 * dpr, padB = 18 * dpr;
   const innerH = h - padT - padB;
 
-  // 스케일은 실제 데이터에 맞춥니다.
-  // 임계값까지 억지로 포함시키면 평상시(20 ppb 남짓)에는 선이 바닥에 깔려
-  // 아무것도 읽을 수 없게 됩니다. 임계값은 화면에 들어올 때만 그립니다.
+  // Scale to the data, not to the threshold. Forcing 1,500 ppb into range
+  // flattens a normal day (around 20 ppb) into a line along the bottom.
+  // The threshold line is drawn only when it actually fits.
   const peak = Math.max(...chartData.map(d => d.tvoc));
   const max = Math.max(peak * 1.35, 60);
   const X = i => (i / Math.max(1, chartData.length - 1)) * w;
@@ -956,22 +951,22 @@ function drawChart() {
     ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(255,77,61,.6)';
     ctx.textAlign = 'left';
-    ctx.fillText('임계값 ' + settings.threshold.toLocaleString(), 0, ty - 7 * dpr);
+    ctx.fillText('alarm ' + settings.threshold.toLocaleString(), 0, ty - 7 * dpr);
   } else {
-    // 임계값이 한참 위 — 지금은 그만큼 안전하다는 뜻입니다.
+    // Threshold far above the data - which is the good case.
     ctx.fillStyle = 'rgba(126,145,139,.75)';
     ctx.textAlign = 'right';
-    ctx.fillText('임계값 ' + settings.threshold.toLocaleString() + ' · 범위 밖', w, 11 * dpr);
+    ctx.fillText('alarm ' + settings.threshold.toLocaleString() + ' · off scale', w, 11 * dpr);
   }
 
-  // 최고점 눈금
+  // peak tick
   ctx.fillStyle = 'rgba(126,145,139,.75)';
   ctx.textAlign = 'left';
   ctx.fillText(peak.toLocaleString(), 0, 11 * dpr);
 
   const pts = chartData.map((d, i) => ({ x: X(i), y: Y(d.tvoc), alert: d.alert }));
 
-  // 면
+  // area
   const g = ctx.createLinearGradient(0, padT, 0, h - padB);
   g.addColorStop(0, 'rgba(207,232,220,.16)');
   g.addColorStop(1, 'rgba(207,232,220,0)');
@@ -982,7 +977,7 @@ function drawChart() {
   ctx.lineTo(pts[pts.length - 1].x, h - padB);
   ctx.closePath(); ctx.fill();
 
-  // 선
+  // line
   ctx.strokeStyle = '#CFE8DC';
   ctx.lineWidth = 1.25 * dpr;
   ctx.lineJoin = 'round';
@@ -990,37 +985,37 @@ function drawChart() {
   pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
   ctx.stroke();
 
-  // 감지 지점
+  // detections
   pts.forEach(p => {
     if (!p.alert) return;
     ctx.fillStyle = '#FF4D3D';
     ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * dpr, 0, Math.PI * 2); ctx.fill();
   });
 
-  // 현재 지점
+  // current reading
   const last = pts[pts.length - 1];
   ctx.fillStyle = last.alert ? '#FF4D3D' : '#CFE8DC';
   ctx.beginPath(); ctx.arc(last.x, last.y, 3 * dpr, 0, Math.PI * 2); ctx.fill();
 }
 
 // ============================================
-// 화면 갱신
+// Render
 // ============================================
 let lastAlertAt = 0;
 let lastStateKey = null;
 
 function relTime(d) {
   const s = Math.floor((Date.now() - d) / 1000);
-  if (s < 60) return s + '초 전';
-  if (s < 3600) return Math.floor(s / 60) + '분 전';
-  if (s < 86400) return Math.floor(s / 3600) + '시간 전';
-  return d.toLocaleDateString('ko-KR');
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return d.toLocaleDateString('en-GB');
 }
 
 function fmtUptime(min) {
-  if (min < 60) return min + '<small>분</small>';
-  if (min < 1440) return Math.floor(min / 60) + '<small>시간</small> ' + (min % 60) + '<small>분</small>';
-  return Math.floor(min / 1440) + '<small>일</small> ' + Math.floor((min % 1440) / 60) + '<small>시간</small>';
+  if (min < 60) return min + '<small>min</small>';
+  if (min < 1440) return Math.floor(min / 60) + '<small>h</small> ' + (min % 60) + '<small>min</small>';
+  return Math.floor(min / 1440) + '<small>d</small> ' + Math.floor((min % 1440) / 60) + '<small>h</small>';
 }
 
 function setText(id, v) { document.getElementById(id).innerHTML = v; }
@@ -1029,7 +1024,7 @@ function updateUI(data) {
   const rows = data.rows || [];
   if (!rows.length) {
     document.getElementById('log').innerHTML =
-      '<div class="empty">아직 기록이 없습니다. 기기가 데이터를 보내면 여기에 쌓입니다.</div>';
+      '<div class="empty">No readings yet. They appear here as the device reports.</div>';
     return;
   }
 
@@ -1039,11 +1034,11 @@ function updateUI(data) {
   const tvoc = stats.currentTvoc || 0;
   const st = stateFor(tvoc);
 
-  // 상태색을 페이지 전체에 전파
+  // push the state colour through the whole page
   document.documentElement.style.setProperty('--state', st.tone);
   field.set(tvoc / Math.max(1, settings.threshold), TONE_RGB[st.key]);
 
-  // 상태 단어
+  // the state word
   const stateEl = document.getElementById('state');
   if (st.key !== lastStateKey) {
     stateEl.classList.remove('swap');
@@ -1058,53 +1053,53 @@ function updateUI(data) {
 
   const base = stats.currentBase || 0;
   document.getElementById('context').innerHTML =
-    '평상시 <b>' + base.toLocaleString() + '</b> · 임계값 <b>' +
+    'Baseline <b>' + base.toLocaleString() + '</b> · alarm at <b>' +
     settings.threshold.toLocaleString() + '</b>';
 
-  // 감지
+  // detection
   const detected = tvoc >= settings.threshold;
   document.body.classList.toggle('detected', detected);
   if (detected && Date.now() - lastAlertAt > 30000) {
     playAlarm();
     if (settings.notifications && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification('전자담배 감지', { body: 'TVOC ' + tvoc.toLocaleString() + ' ppb' });
+      new Notification('Smoke detected', { body: 'TVOC ' + tvoc.toLocaleString() + ' ppb' });
     }
     lastAlertAt = Date.now();
   }
 
-  // 스트립
+  // strip
   setText('eco2',  (stats.currentEco2 || 0).toLocaleString() + '<small>ppm</small>');
   setText('base',  base.toLocaleString() + '<small>ppb</small>');
 
   const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
   const today = rows.filter(r => new Date(r.time) >= midnight);
   setText('peak', (today.length ? Math.max(...today.map(r => r.tvoc)) : 0).toLocaleString() + '<small>ppb</small>');
-  setText('alerts', (stats.todayAlerts || 0) + '<small>회</small>');
+  setText('alerts', (stats.todayAlerts || 0) + '<small>today</small>');
   setText('uptime', fmtUptime(stats.currentUptime || 0));
 
-  // 연결 상태
+  // link health
   const beacon = document.getElementById('beacon');
   const conn = document.getElementById('conn');
   if (stats.lastUpdate) {
     const age = (Date.now() - new Date(stats.lastUpdate)) / 1000;
     if (age < 40) {
-      conn.textContent = '수신 중';
+      conn.textContent = 'Live';
       conn.classList.remove('dead'); beacon.classList.remove('dead');
     } else {
-      conn.textContent = relTime(new Date(stats.lastUpdate)) + ' 끊김';
+      conn.textContent = 'silent · ' + relTime(new Date(stats.lastUpdate));
       conn.classList.add('dead'); beacon.classList.add('dead');
     }
   }
 
   drawChart();
 
-  // 기록
+  // readings log
   const max = Math.max(...rows.map(r => r.tvoc), settings.threshold, 60);
   document.getElementById('log').innerHTML = rows.slice(-20).reverse().map(r => {
     const t = new Date(r.time);
     const pct = Math.max(1.5, (r.tvoc / max) * 100);
     return '<div class="row' + (r.alert ? ' hot' : '') + '">' +
-      '<div class="t">' + t.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + '</div>' +
+      '<div class="t">' + t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + '</div>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
       '<div class="n">' + r.tvoc.toLocaleString() + '</div>' +
     '</div>';
@@ -1112,7 +1107,7 @@ function updateUI(data) {
 }
 
 // ============================================
-// 데이터
+// Data
 // ============================================
 async function fetchData() {
   const token = getToken();
@@ -1122,13 +1117,13 @@ async function fetchData() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
 
-    if (data.needLogin) { clearAuth(); showLogin('세션이 만료되었습니다. 다시 로그인해 주세요.'); return; }
+    if (data.needLogin) { clearAuth(); showLogin('Your session expired. Sign in again.'); return; }
     if (data.error) throw new Error(data.error);
 
     updateUI(data);
   } catch (e) {
     console.error(e);
-    document.getElementById('conn').textContent = '연결 실패';
+    document.getElementById('conn').textContent = 'No connection';
     document.getElementById('conn').classList.add('dead');
     document.getElementById('beacon').classList.add('dead');
   }
@@ -1146,7 +1141,7 @@ function start() {
 }
 
 // ============================================
-// 기기 명령
+// Device commands
 // ============================================
 function toast(msg, bad) {
   const el = document.getElementById('toast');
@@ -1167,40 +1162,40 @@ async function sendCommand(cmd, label) {
   if (!getToken()) { showAuthGate(); return; }
   try {
     await fetch(API_URL + '?action=setcmd&cmd=' + cmd + '&token=' + encodeURIComponent(getToken()));
-    toast(label + ' 명령을 보냈습니다. 20초 안에 실행됩니다.');
+    toast(label + ' sent. The device runs it within 20 seconds.');
   } catch (e) {
-    toast('명령을 보내지 못했습니다: ' + e.message, true);
+    toast('Could not send the command: ' + e.message, true);
   }
 }
 
 // ============================================
-// 계정 관리
+// People
 // ============================================
 async function loadUsers() {
   const box = document.getElementById('users');
-  box.textContent = '불러오는 중';
+  box.textContent = 'Loading';
   try {
     const d = await api('users');
-    if (!d.ok) throw new Error(d.error || '불러오지 못했습니다');
+    if (!d.ok) throw new Error(d.error || 'Could not load the list');
 
     box.innerHTML = d.users.map(u => {
       const me = u.id === currentUser();
-      const last = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('ko-KR') + ' 접속' : '접속 기록 없음';
+      const last = u.lastLogin ? 'last in ' + new Date(u.lastLogin).toLocaleDateString('en-GB') : 'never signed in';
       return '<div class="user"><div>' +
-        '<div class="uid">' + u.id + (me ? ' (나)' : '') +
+        '<div class="uid">' + u.id + (me ? ' (you)' : '') +
           '<span class="chip' + (u.role === 'admin' ? ' admin' : '') + '">' +
-          (u.role === 'admin' ? '관리자' : '보기') + '</span></div>' +
+          (u.role === 'admin' ? 'Admin' : 'View') + '</span></div>' +
         '<div class="meta">' + last + '</div></div>' +
-        '<button class="kill" data-id="' + u.id + '"' + (me ? ' disabled' : '') + '>삭제</button>' +
+        '<button class="kill" data-id="' + u.id + '"' + (me ? ' disabled' : '') + '>Remove</button>' +
       '</div>';
-    }).join('') || '<div class="empty">계정이 없습니다</div>';
+    }).join('') || '<div class="empty">No accounts</div>';
 
     box.querySelectorAll('.kill').forEach(b => b.addEventListener('click', async () => {
       const id = b.dataset.id;
-      if (!confirm('계정 "' + id + '" 을 삭제할까요?\n이 계정의 로그인도 모두 해제됩니다.')) return;
+      if (!confirm('Remove ' + id + '?\nThis also signs them out everywhere.')) return;
       const res = await api('user_del', { id });
-      if (!res.ok) { toast(res.error || '삭제하지 못했습니다', true); return; }
-      toast(id + ' 계정을 삭제했습니다');
+      if (!res.ok) { toast(res.error || 'Could not remove the account', true); return; }
+      toast('Removed ' + id);
       loadUsers();
     }));
   } catch (e) {
@@ -1215,40 +1210,40 @@ async function addUser() {
   const err = document.getElementById('addErr');
 
   err.textContent = '';
-  if (!id.value.trim() || !pw.value) { err.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
-  if (pw.value.length < 8) { err.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
+  if (!id.value.trim() || !pw.value) { err.textContent = 'Enter a username and password.'; return; }
+  if (pw.value.length < 8) { err.textContent = 'Use at least 8 characters.'; return; }
 
   const d = await api('user_add', { id: id.value.trim(), pw: pw.value, role: role.value });
-  if (!d.ok) { err.textContent = d.error || '추가하지 못했습니다'; return; }
+  if (!d.ok) { err.textContent = d.error || 'Could not add the account'; return; }
   id.value = ''; pw.value = '';
-  toast(d.id + ' 계정을 추가했습니다');
+  toast('Added ' + d.id);
   loadUsers();
 }
 
 async function changePassword() {
-  const oldPw = prompt('현재 비밀번호');
+  const oldPw = prompt('Current password');
   if (!oldPw) return;
-  const newPw = prompt('새 비밀번호 (8자 이상)');
+  const newPw = prompt('New password (8 characters or more)');
   if (!newPw) return;
-  if (newPw.length < 8) { toast('비밀번호는 8자 이상이어야 합니다', true); return; }
-  if (newPw !== prompt('새 비밀번호를 한 번 더')) { toast('두 비밀번호가 다릅니다', true); return; }
+  if (newPw.length < 8) { toast('Use at least 8 characters', true); return; }
+  if (newPw !== prompt('Repeat the new password')) { toast('The two passwords do not match', true); return; }
 
   const d = await api('passwd', { old: oldPw, pw: newPw });
-  if (!d.ok) { toast(d.error || '변경하지 못했습니다', true); return; }
-  alert('비밀번호를 바꿨습니다. 다시 로그인해 주세요.');
+  if (!d.ok) { toast(d.error || 'Could not change the password', true); return; }
+  alert('Password changed. Sign in again.');
   clearAuth();
   location.reload();
 }
 
 // ============================================
-// 이벤트
+// Events
 // ============================================
 const panel = document.getElementById('panel');
 
 document.getElementById('gearBtn').addEventListener('click', () => {
   panel.classList.add('open');
   initAudio();
-  document.getElementById('who').textContent = (currentUser() || '—') + (isAdmin() ? ' · 관리자' : '');
+  document.getElementById('who').textContent = (currentUser() || '—') + (isAdmin() ? ' · admin' : '');
   const admin = document.getElementById('adminBlock');
   admin.hidden = !isAdmin();
   if (isAdmin()) loadUsers();
@@ -1270,7 +1265,7 @@ function bindSlider(id, key, fmt, after) {
 }
 bindSlider('thSlider',  'threshold',       { out: 'thVal',  fn: v => v.toLocaleString() + ' ppb' }, () => { drawChart(); fetchData(); });
 bindSlider('volSlider', 'volume',          { out: 'volVal', fn: v => v + '%' });
-bindSlider('refSlider', 'refreshInterval', { out: 'refVal', fn: v => v + '초' }, restartInterval);
+bindSlider('refSlider', 'refreshInterval', { out: 'refVal', fn: v => v + 's' }, restartInterval);
 
 function bindToggle(id, key, onOn) {
   const el = document.getElementById(id);
@@ -1291,22 +1286,22 @@ bindToggle('soundToggle', 'sound');
 
 document.getElementById('testAlarm').addEventListener('click', () => { initAudio(); playAlarm(); });
 
-document.getElementById('cmdTest').addEventListener('click', () => sendCommand('TEST_ALERT', '알림 테스트'));
+document.getElementById('cmdTest').addEventListener('click', () => sendCommand('TEST_ALERT', 'Alarm test'));
 document.getElementById('cmdBase').addEventListener('click', () => {
-  if (confirm('평상시 기준값을 초기화할까요?\n센서가 처음부터 다시 학습합니다.')) sendCommand('RESET_BASE', '기준값 재학습');
+  if (confirm('Relearn the baseline?\nThe sensor starts its 12-hour learning over.')) sendCommand('RESET_BASE', 'Baseline reset');
 });
 document.getElementById('cmdRestart').addEventListener('click', () => {
-  if (confirm('기기를 재시작할까요?\n약 20초 뒤에 실행됩니다.')) sendCommand('RESTART', '재시작');
+  if (confirm('Restart the device?\nIt reboots in about 20 seconds.')) sendCommand('RESTART', 'Restart');
 });
 
 document.getElementById('pwBtn').addEventListener('click', changePassword);
-document.getElementById('outBtn').addEventListener('click', () => { if (confirm('로그아웃할까요?')) doLogout(); });
+document.getElementById('outBtn').addEventListener('click', () => { if (confirm('Sign out?')) doLogout(); });
 document.getElementById('addBtn').addEventListener('click', addUser);
 
 addEventListener('resize', drawChart);
 
 // ============================================
-// 시작
+// Start
 // ============================================
 if (getToken()) {
   start();
