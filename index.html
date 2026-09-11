@@ -3,1152 +3,612 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VAPE GUARD · Real-time Air Quality Monitor</title>
+<title>VAPE GUARD</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
+/* ============================================================
+   VAPE GUARD — "숨 쉬는 계측기"
+   배경의 공기 장(場)이 측정값 그 자체입니다.
+   평소엔 거의 무채색, 감지될 때만 색이 터집니다.
+   ============================================================ */
 :root {
-  --bg-0: #050510;
-  --bg-1: #0a0a14;
-  --bg-2: #14142b;
-  --green: #00d4aa;
-  --teal: #00b4ff;
-  --yellow: #ffd60a;
-  --orange: #ff9f0a;
-  --red: #ff453a;
-  --pink: #ff2d92;
-  --purple: #bf5af2;
-  --card-bg: rgba(255, 255, 255, 0.03);
-  --card-border: rgba(255, 255, 255, 0.06);
-  --text: #ffffff;
-  --text-dim: rgba(255, 255, 255, 0.5);
-  --text-faint: rgba(255, 255, 255, 0.3);
+  --ink:    #080C0B;
+  --ink-2:  #0E1413;
+  --ink-3:  #151D1B;
+  --line:   rgba(232, 240, 236, 0.10);
+  --line-2: rgba(232, 240, 236, 0.05);
+  --clear:  #E8F0EC;
+  --haze:   #7E918B;
+  --faint:  #4A5955;
+
+  --calm:   #CFE8DC;   /* 정상 — 창백한 세이지 */
+  --note:   #9FD9C0;   /* 주의 */
+  --rise:   #F0C070;   /* 경고 — 따뜻한 호박색 */
+  --alarm:  #FF4D3D;   /* 감지 — 유일하게 채도 높은 색 */
+
+  --state:  var(--calm);  /* 현재 상태색. JS가 바꿉니다 */
+
+  --pad: clamp(20px, 5vw, 64px);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  background: var(--bg-0);
-  color: var(--text);
+  font-family: 'IBM Plex Sans KR', 'IBM Plex Mono', system-ui, sans-serif;
+  background: var(--ink);
+  color: var(--clear);
   min-height: 100vh;
   overflow-x: hidden;
-  position: relative;
-}
-
-/* Animated background blobs */
-body::before, body::after {
-  content: '';
-  position: fixed;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.3;
-  z-index: -1;
-  pointer-events: none;
-  animation: float 20s infinite ease-in-out;
-}
-body::before {
-  background: radial-gradient(circle, var(--green), transparent);
-  top: -200px; left: -200px;
-}
-body::after {
-  background: radial-gradient(circle, var(--purple), transparent);
-  bottom: -200px; right: -200px;
-  animation-delay: -10s;
-}
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(100px, -50px) scale(1.1); }
-  66% { transform: translate(-50px, 100px) scale(0.9); }
-}
-
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 32px 24px;
-  position: relative;
-}
-
-/* === HEADER === */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 48px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--card-border);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.brand-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--green), var(--teal));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  box-shadow: 0 8px 32px rgba(0, 212, 170, 0.4);
-}
-
-.brand-text .name {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.brand-text .tag {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 3px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-top: 2px;
-}
-
-.header-right {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.status-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 100px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: pulse-dot 1.5s infinite;
-}
-.live-dot.offline { background: var(--red); animation: none; }
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7); }
-  50% { opacity: 0.5; box-shadow: 0 0 0 8px rgba(0, 212, 170, 0); }
-}
-
-.icon-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 18px;
-  color: var(--text);
-}
-.icon-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-}
-.icon-btn.active {
-  background: linear-gradient(135deg, var(--green), var(--teal));
-  border-color: transparent;
-  box-shadow: 0 4px 16px rgba(0, 212, 170, 0.4);
-}
-
-/* === HERO SECTION === */
-.hero {
-  position: relative;
-  background: var(--card-bg);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid var(--card-border);
-  border-radius: 32px;
-  padding: 48px 40px;
-  margin-bottom: 24px;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 20% 20%, rgba(0, 212, 170, 0.15), transparent 50%);
-  pointer-events: none;
-}
-
-.hero.alert {
-  background: rgba(255, 69, 58, 0.1);
-  border-color: rgba(255, 69, 58, 0.3);
-  animation: alert-glow 1.2s infinite;
-}
-.hero.alert::before {
-  background: radial-gradient(circle at 50% 50%, rgba(255, 69, 58, 0.3), transparent 70%);
-}
-@keyframes alert-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.5), inset 0 0 0 1px rgba(255, 69, 58, 0.3); }
-  50% { box-shadow: 0 0 40px 10px rgba(255, 69, 58, 0.3), inset 0 0 0 2px rgba(255, 69, 58, 0.8); }
-}
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 48px;
-  align-items: center;
-  position: relative;
-}
-
-.hero-main .label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 2.5px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-bottom: 16px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 100px;
-  border: 1px solid var(--card-border);
-}
-
-.tvoc-display {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.tvoc-value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 120px;
-  font-weight: 800;
-  line-height: 0.9;
-  letter-spacing: -4px;
-  color: var(--green);
-  transition: color 0.4s ease;
-  text-shadow: 0 0 60px currentColor;
-}
-.tvoc-value.y { color: var(--yellow); }
-.tvoc-value.o { color: var(--orange); }
-.tvoc-value.r { color: var(--red); }
-
-.tvoc-unit {
-  font-size: 24px;
-  color: var(--text-dim);
-  font-weight: 500;
-}
-
-.tvoc-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text-dim);
-}
-
-.status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 12px currentColor;
-}
-.status-indicator.y { background: var(--yellow); }
-.status-indicator.o { background: var(--orange); }
-.status-indicator.r { background: var(--red); animation: pulse-dot 1s infinite; }
-
-/* Gauge ring */
-.gauge {
-  position: relative;
-  width: 240px;
-  height: 240px;
-}
-
-.gauge-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.gauge-bg {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.06);
-  stroke-width: 16;
-}
-
-.gauge-fg {
-  fill: none;
-  stroke: url(#gaugeGrad);
-  stroke-width: 16;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.gauge-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.gauge-percent {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -1px;
-}
-
-.gauge-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-
-/* === STATS GRID === */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat {
-  background: var(--card-bg);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid var(--card-border);
-  border-radius: 20px;
-  padding: 24px;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.stat::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 60px; height: 60px;
-  background: radial-gradient(circle, currentColor, transparent 70%);
-  opacity: 0.15;
-  filter: blur(20px);
-}
-
-.stat:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.stat-icon {
-  font-size: 20px;
-  margin-bottom: 12px;
-  opacity: 0.7;
-}
-
-.stat-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.stat-value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -1px;
-  line-height: 1;
-}
-
-.stat-sub {
-  font-size: 11px;
-  color: var(--text-faint);
-  margin-top: 6px;
-}
-
-.stat.alert-card { color: var(--red); }
-.stat.eco2-card { color: var(--teal); }
-.stat.base-card { color: var(--purple); }
-.stat.peak-card { color: var(--orange); }
-
-/* === CHART CARD === */
-.chart-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid var(--card-border);
-  border-radius: 24px;
-  padding: 28px;
-  margin-bottom: 24px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.card-sub {
-  font-size: 11px;
-  color: var(--text-dim);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-top: 2px;
-}
-
-.chart-legend {
-  display: flex;
-  gap: 16px;
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-canvas {
-  width: 100% !important;
-  height: 280px !important;
-}
-
-/* === LOG CARD === */
-.log-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(30px);
-  border: 1px solid var(--card-border);
-  border-radius: 24px;
-  padding: 28px;
-  margin-bottom: 24px;
-}
-
-.log-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.log-list::-webkit-scrollbar { width: 6px; }
-.log-list::-webkit-scrollbar-track { background: transparent; }
-.log-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
-
-.log-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 14px;
-  transition: all 0.2s ease;
-}
-
-.log-item.alert {
-  background: rgba(255, 69, 58, 0.08);
-  border-color: rgba(255, 69, 58, 0.2);
-}
-
-.log-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateX(4px);
-}
-
-.log-left { display: flex; align-items: center; gap: 12px; }
-
-.log-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.log-item.alert .log-icon {
-  background: rgba(255, 69, 58, 0.15);
-}
-
-.log-info .device {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-
-.log-info .time {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.log-right { text-align: right; }
-
-.log-tvoc {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.log-badge {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-
-.badge-alert { background: rgba(255, 69, 58, 0.15); color: var(--red); }
-.badge-ok { background: rgba(0, 212, 170, 0.15); color: var(--green); }
-
-/* === SETTINGS PANEL === */
-.settings-panel {
-  position: fixed;
-  top: 0; right: 0;
-  width: 400px;
-  height: 100vh;
-  background: rgba(10, 10, 20, 0.95);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border-left: 1px solid var(--card-border);
-  padding: 32px;
-  transform: translateX(100%);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1000;
-  overflow-y: auto;
-}
-
-.settings-panel.open { transform: translateX(0); }
-
-.settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 32px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--card-border);
-}
-
-.settings-title {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.close-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: rotate(90deg);
-}
-
-.setting-section {
-  margin-bottom: 32px;
-}
-
-.setting-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.setting-value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--green);
-}
-
-.slider {
-  width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  outline: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-}
-
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  background: linear-gradient(135deg, var(--green), var(--teal));
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 212, 170, 0.4);
-}
-
-.toggle {
-  position: relative;
-  width: 52px;
-  height: 30px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 100px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.toggle.on { background: linear-gradient(135deg, var(--green), var(--teal)); }
-
-.toggle::after {
-  content: '';
-  position: absolute;
-  top: 3px; left: 3px;
-  width: 24px;
-  height: 24px;
-  background: white;
-  border-radius: 50%;
-  transition: transform 0.3s ease;
-}
-
-.toggle.on::after { transform: translateX(22px); }
-
-.setting-desc {
-  font-size: 11px;
-  color: var(--text-dim);
   line-height: 1.5;
-  margin-top: 8px;
+  -webkit-font-smoothing: antialiased;
 }
 
-.test-btn {
-  width: 100%;
-  padding: 14px;
-  background: rgba(255, 69, 58, 0.15);
-  border: 1px solid rgba(255, 69, 58, 0.3);
-  border-radius: 12px;
-  color: var(--red);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* 계측 표기는 모노 — 라틴·숫자 전용이라 자간을 줘도 안전합니다.
+   한글에는 자간을 주지 않습니다. 자모가 흩어져 보이기 때문입니다. */
+.mono, .eyebrow, .cell .k, .reading, .context, .conn, .mark,
+.head .note, .row, .topbar {
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+.ko { font-family: 'IBM Plex Sans KR', system-ui, sans-serif; letter-spacing: 0; }
+
+::selection { background: var(--state); color: var(--ink); }
+
+:focus-visible {
+  outline: 2px solid var(--state);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ── 공기 장 (시그니처) ─────────────────────────── */
+#airfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 감지 시 화면 가장자리가 맥동합니다 */
+#vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  background: radial-gradient(ellipse at center,
+              transparent 45%, rgba(255, 77, 61, 0.22) 100%);
+}
+body.detected #vignette { opacity: 1; animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+.shell { position: relative; z-index: 2; }
+
+/* ── 상단 바 ────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px var(--pad);
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.test-btn:hover {
-  background: rgba(255, 69, 58, 0.25);
-  transform: translateY(-2px);
-}
-
-/* === ALERT BANNER === */
-.alert-banner {
-  position: fixed;
-  top: 24px; left: 50%;
-  transform: translateX(-50%) translateY(-200%);
-  background: linear-gradient(135deg, #ff453a, #ff2d92);
-  color: white;
-  padding: 20px 32px;
-  border-radius: 100px;
-  font-weight: 700;
-  font-size: 15px;
+.mark {
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 20px 60px rgba(255, 69, 58, 0.5);
-  z-index: 999;
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   white-space: nowrap;
 }
 
-.alert-banner.show {
-  transform: translateX(-50%) translateY(0);
+.beacon {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--state);
+  box-shadow: 0 0 0 0 var(--state);
+  animation: ping 2.6s ease-out infinite;
+  flex-shrink: 0;
 }
+@keyframes ping {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--state) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 9px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.beacon.dead { background: var(--faint); animation: none; }
 
-.alert-banner-icon {
-  font-size: 24px;
-  animation: shake 0.5s infinite;
-}
+.topbar .spacer { flex: 1; }
 
-@keyframes shake {
-  0%, 100% { transform: rotate(0); }
-  25% { transform: rotate(-10deg); }
-  75% { transform: rotate(10deg); }
+.room, .conn {
+  color: var(--haze);
+  white-space: nowrap;
 }
+.conn { font-variant-numeric: tabular-nums; }
+.conn.dead { color: var(--alarm); }
 
-/* === RESPONSIVE === */
-@media (max-width: 900px) {
-  .hero-grid { grid-template-columns: 1fr; }
-  .gauge { margin: 0 auto; }
-  .stats { grid-template-columns: 1fr 1fr; }
-  .tvoc-value { font-size: 80px; }
-  .settings-panel { width: 100%; }
-}
-
-@media (max-width: 500px) {
-  .container { padding: 20px 16px; }
-  .header { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .stats { grid-template-columns: 1fr 1fr; }
-  .tvoc-value { font-size: 64px; }
-  .hero { padding: 32px 24px; }
-}
-
-/* Loading skeleton */
-.skeleton {
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0.05) 0%,
-    rgba(255,255,255,0.1) 50%,
-    rgba(255,255,255,0.05) 100%);
-  background-size: 200% 100%;
-  animation: skeleton 1.5s infinite;
-}
-@keyframes skeleton {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Empty state */
-.empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-dim);
-  font-size: 13px;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.3;
-}
-
-/* Remote command buttons */
-.cmd-btn {
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 600;
+.gear {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--haze);
+  width: 30px; height: 30px;
+  border-radius: 3px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
+  display: grid;
+  place-items: center;
+  transition: color .2s, border-color .2s;
+  flex-shrink: 0;
 }
-.cmd-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
-}
-.cmd-btn.restart {
-  background: rgba(255, 69, 58, 0.15);
-  border-color: rgba(255, 69, 58, 0.3);
-  color: var(--red);
-}
-.cmd-btn.restart:hover {
-  background: rgba(255, 69, 58, 0.25);
-  box-shadow: 0 4px 16px rgba(255, 69, 58, 0.3);
-}
-.cmd-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
+.gear:hover { color: var(--clear); border-color: var(--clear); }
+
+/* ── 히어로: 상태 단어가 주인공 ──────────────────── */
+.hero {
+  padding: clamp(48px, 9vh, 96px) var(--pad) clamp(36px, 6vh, 64px);
+  text-align: center;
 }
 
-/* Toast notification */
-.toast {
-  position: fixed;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%) translateY(200%);
-  background: rgba(20, 20, 40, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--card-border);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 100px;
-  font-size: 13px;
-  font-weight: 600;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 999;
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.44em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: clamp(18px, 3vh, 28px);
+}
+
+.state {
+  font-family: 'IBM Plex Sans KR', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(54px, 13vw, 156px);
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+  color: var(--state);
+  text-transform: uppercase;
+  transition: color 1s ease;
+  word-break: break-word;
+}
+.state.swap { animation: swap .55s ease; }
+@keyframes swap {
+  0%   { opacity: 1; filter: blur(0); }
+  45%  { opacity: 0; filter: blur(9px); transform: translateY(-6px); }
+  100% { opacity: 1; filter: blur(0); transform: none; }
+}
+
+.reading {
+  margin-top: clamp(22px, 4vh, 38px);
   display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 9px;
+  font-size: clamp(26px, 5vw, 40px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.reading .unit {
+  font-size: 12px;
+  color: var(--faint);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.context {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--haze);
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+.context b { color: var(--clear); font-weight: 500; }
+
+/* ── 측정 스트립 ────────────────────────────────── */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.cell {
+  padding: 20px var(--pad);
+  border-left: 1px solid var(--line-2);
+}
+.cell:first-child { border-left: none; }
+.cell .k {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.cell .v {
+  margin-top: 7px;
+  font-size: clamp(15px, 2vw, 21px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cell .v small { font-size: 10px; color: var(--faint); margin-left: 3px; }
+
+/* ── 섹션 공통 ──────────────────────────────────── */
+.section { padding: clamp(34px, 7vh, 64px) var(--pad); }
+.section + .section { border-top: 1px solid var(--line); }
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+.head h2 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--clear);
+}
+.head .note {
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.08em;
+}
+
+/* ── 차트 ───────────────────────────────────────── */
+#chart { width: 100%; height: clamp(170px, 26vh, 260px); display: block; }
+
+/* ── 기록 ───────────────────────────────────────── */
+.log { border-top: 1px solid var(--line-2); }
+.row {
+  display: grid;
+  grid-template-columns: 78px 1fr auto;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line-2);
+  font-variant-numeric: tabular-nums;
+  transition: background .15s;
 }
-.toast.show {
-  transform: translateX(-50%) translateY(0);
+.row:hover { background: rgba(232, 240, 236, 0.025); }
+.row .t { color: var(--faint); font-size: 11px; }
+.row .bar { height: 2px; background: var(--line); position: relative; }
+.row .bar i {
+  position: absolute; inset: 0 auto 0 0;
+  background: var(--state);
+  transition: width .6s cubic-bezier(.2,.7,.3,1);
 }
-.toast.success { border-color: rgba(0, 212, 170, 0.4); }
-.toast.error { border-color: rgba(255, 69, 58, 0.4); }
+.row.hot .bar i { background: var(--alarm); }
+.row .n { font-size: 12px; min-width: 62px; text-align: right; color: var(--haze); }
+.row.hot .n { color: var(--alarm); font-weight: 600; }
 
-/* ===== 최초 설정 화면 ===== */
-#setupOverlay, #loginOverlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(10,10,12,.92); backdrop-filter: blur(20px);
-  display: flex; align-items: center; justify-content: center; padding: 24px;
+.empty {
+  padding: 46px 0;
+  text-align: center;
+  color: var(--faint);
+  font-size: 11px;
 }
-.setup-box {
-  width: 100%; max-width: 460px; text-align: center;
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
-  border-radius: 24px; padding: 40px 32px;
-}
-.setup-icon { font-size: 48px; margin-bottom: 12px; }
-.setup-title {
-  font-size: 24px; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px;
-  background: linear-gradient(135deg,#00d4aa,#0a84ff,#bf5af2);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.setup-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.6; }
-.setup-input {
-  width: 100%; box-sizing: border-box; padding: 14px 16px;
-  background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.14);
-  border-radius: 12px; color: #fff; font-size: 13px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace; outline: none;
-}
-.setup-input:focus { border-color: #00d4aa; }
-.setup-error { color: #ff453a; font-size: 12px; min-height: 18px; margin-top: 8px; }
-.setup-btn {
-  width: 100%; margin-top: 8px; padding: 14px; border: none; border-radius: 12px;
-  background: linear-gradient(135deg,#00d4aa,#0a84ff); color: #fff;
-  font-size: 15px; font-weight: 600; cursor: pointer;
-}
-.setup-btn:active { transform: scale(.98); }
-.setup-note { margin-top: 18px; font-size: 11px; color: var(--text-faint); line-height: 1.6; }
 
-/* ===== 계정 관리 ===== */
-.user-list { margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
-.user-row {
+/* ── 설정 패널 ──────────────────────────────────── */
+.panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(400px, 100%);
+  background: var(--ink-2);
+  border-left: 1px solid var(--line);
+  z-index: 40;
+  transform: translateX(101%);
+  transition: transform .45s cubic-bezier(.5,0,.2,1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.panel.open { transform: none; }
+
+.panel-head {
+  position: sticky; top: 0;
+  background: var(--ink-2);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  z-index: 1;
+}
+.panel-head h3 {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.28em; text-transform: uppercase;
+}
+.x {
+  background: none; border: none; color: var(--haze);
+  font-size: 17px; cursor: pointer; line-height: 1;
+  padding: 4px;
+}
+.x:hover { color: var(--clear); }
+
+.block { padding: 22px 24px; border-bottom: 1px solid var(--line-2); }
+.block > .lbl {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; letter-spacing: 0.06em;
+}
+.block .val { color: var(--state); font-weight: 600; font-variant-numeric: tabular-nums; }
+.block .desc { margin-top: 9px; font-size: 10px; color: var(--faint); line-height: 1.65; }
+
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 1px; margin: 17px 0 3px;
+  background: var(--line); cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--state); border: none; cursor: pointer;
+}
+input[type=range]::-moz-range-thumb {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--state); border: none; cursor: pointer;
+}
+
+.toggle {
+  width: 38px; height: 20px; border-radius: 10px;
+  background: var(--line); cursor: pointer; position: relative;
+  transition: background .25s; flex-shrink: 0;
+}
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--haze); transition: transform .25s, background .25s;
+}
+.toggle.on { background: color-mix(in srgb, var(--state) 28%, transparent); }
+.toggle.on::after { transform: translateX(18px); background: var(--state); }
+
+.btn {
+  width: 100%; padding: 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--clear);
+  font-family: inherit; font-size: 11px;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
+}
+.btn:hover { border-color: var(--clear); }
+.btn + .btn { margin-top: 8px; }
+.btn.go    { border-color: color-mix(in srgb, var(--calm) 45%, transparent); color: var(--calm); }
+.btn.warn  { border-color: color-mix(in srgb, var(--alarm) 40%, transparent); color: var(--alarm); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.cmds { display: grid; gap: 8px; margin-top: 14px; }
+
+/* ── 계정 ───────────────────────────────────────── */
+.users { margin: 14px 0; display: flex; flex-direction: column; gap: 1px; }
+.user {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 10px 12px; background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07); border-radius: 10px;
+  padding: 11px 0; border-bottom: 1px solid var(--line-2);
 }
-.user-row .uid { font-size: 13px; font-weight: 600; }
-.user-row .meta { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
-.role-chip {
-  font-size: 9px; font-weight: 700; letter-spacing: .5px; padding: 3px 7px;
-  border-radius: 100px; text-transform: uppercase;
+.user .uid { font-size: 12px; }
+.user .meta { font-size: 9px; color: var(--faint); margin-top: 3px; letter-spacing: 0.06em; }
+.chip {
+  font-size: 9px; letter-spacing: 0;
+  padding: 2px 6px; border: 1px solid var(--line); border-radius: 2px;
+  color: var(--haze); margin-left: 7px;
 }
-.role-chip.admin  { background: rgba(191,90,242,.2); color: #bf5af2; }
-.role-chip.viewer { background: rgba(255,255,255,.08); color: var(--text-dim); }
-.del-btn {
-  border: none; background: rgba(255,69,58,.14); color: #ff453a;
-  border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer;
+.chip.admin { color: var(--state); border-color: color-mix(in srgb, var(--state) 40%, transparent); }
+.kill {
+  background: none; border: 1px solid var(--line); border-radius: 2px;
+  color: var(--haze); font-family: inherit; font-size: 10px;
+  padding: 5px 9px; cursor: pointer;
 }
-.del-btn:disabled { opacity: .3; cursor: not-allowed; }
-.user-add { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-.user-add .setup-input { font-size: 12px; padding: 11px 13px; }
-.user-add select.setup-input { font-family: inherit; }
+.kill:hover:not(:disabled) { color: var(--alarm); border-color: var(--alarm); }
+.kill:disabled { opacity: .3; cursor: not-allowed; }
+
+.field {
+  width: 100%; padding: 11px 13px; margin-top: 8px;
+  background: var(--ink); border: 1px solid var(--line);
+  border-radius: 3px; color: var(--clear);
+  font-family: inherit; font-size: 12px; outline: none;
+  transition: border-color .2s;
+}
+.field:focus { border-color: var(--state); }
+.field::placeholder { color: var(--faint); }
+select.field { cursor: pointer; }
+
+.err { color: var(--alarm); font-size: 10px; min-height: 15px; margin-top: 7px; letter-spacing: 0.04em; }
+
+/* ── 게이트 (로그인 / 최초 등록) ─────────────────── */
+.gate {
+  position: fixed; inset: 0; z-index: 60;
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: grid; place-items: center;
+  padding: 24px;
+}
+.gate-box { width: 100%; max-width: 340px; }
+.gate-mark {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--haze); margin-bottom: 26px;
+}
+.gate h1 {
+  font-family: 'IBM Plex Sans KR', system-ui, sans-serif;
+  font-weight: 700; font-size: 28px; line-height: 1.25;
+  letter-spacing: -0.035em; margin-bottom: 12px;
+}
+.gate p { font-size: 11px; color: var(--haze); line-height: 1.7; margin-bottom: 22px; }
+.gate .btn { margin-top: 14px; }
+.gate .fine {
+  margin-top: 20px; font-size: 10px; color: var(--faint);
+  line-height: 1.7; letter-spacing: 0.04em;
+}
+
+/* ── 토스트 ─────────────────────────────────────── */
+#toast {
+  position: fixed; left: 50%; bottom: 26px;
+  transform: translate(-50%, 20px);
+  background: var(--ink-3); border: 1px solid var(--line);
+  border-radius: 3px; padding: 11px 18px;
+  font-size: 12px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s, transform .3s;
+  z-index: 70; max-width: calc(100vw - 40px);
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+#toast.bad { border-color: color-mix(in srgb, var(--alarm) 50%, transparent); color: var(--alarm); }
+
+/* ── 등장 시퀀스 ────────────────────────────────── */
+.rise { opacity: 0; transform: translateY(12px); }
+body.ready .rise { animation: rise .85s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+body.ready .d1 { animation-delay: .05s; }
+body.ready .d2 { animation-delay: .16s; }
+body.ready .d3 { animation-delay: .27s; }
+body.ready .d4 { animation-delay: .38s; }
+body.ready .d5 { animation-delay: .49s; }
+
+.draw { transform: scaleX(0); transform-origin: left; }
+body.ready .draw { animation: draw 1.1s cubic-bezier(.4,0,.1,1) .2s forwards; }
+@keyframes draw { to { transform: scaleX(1); } }
+
+/* ── 반응형 ─────────────────────────────────────── */
+@media (max-width: 760px) {
+  .strip { grid-template-columns: repeat(2, 1fr); }
+  .cell { border-left: none; border-top: 1px solid var(--line-2); }
+  .cell:nth-child(odd) { border-right: 1px solid var(--line-2); }
+  .cell:nth-child(-n+2) { border-top: none; }
+  .cell:last-child { grid-column: 1 / -1; border-right: none; }
+  .row { grid-template-columns: 62px 1fr auto; gap: 10px; }
+  .topbar .room { display: none; }
+  .eyebrow .long { display: none; }
+  .eyebrow { letter-spacing: 0.32em; }
+}
+
+/* ── 모션 최소화 ────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .rise, .draw { opacity: 1; transform: none; }
+  #airfield { display: none; }
+}
 </style>
 </head>
 <body>
 
-<!-- Alert Banner -->
-<div class="alert-banner" id="alertBanner">
-  <span class="alert-banner-icon">🚨</span>
-  <span id="alertBannerText">VAPE DETECTED</span>
-</div>
+<canvas id="airfield" aria-hidden="true"></canvas>
+<div id="vignette" aria-hidden="true"></div>
 
-<!-- Toast Notification -->
-<div class="toast" id="toast">
-  <span id="toastIcon">✓</span>
-  <span id="toastText">메시지</span>
-</div>
+<div class="shell">
 
-<div class="container">
+  <header class="topbar">
+    <div class="mark"><span class="beacon" id="beacon"></span> Vape Guard</div>
+    <div class="spacer"></div>
+    <div class="room" id="room">—</div>
+    <div class="conn ko" id="conn">연결 중</div>
+    <button class="gear" id="gearBtn" aria-label="설정 열기">⚙</button>
+  </header>
 
-  <!-- Header -->
-  <div class="header">
-    <div class="brand">
-      <div class="brand-icon">🛡</div>
-      <div class="brand-text">
-        <div class="name">VAPE GUARD</div>
-        <div class="tag">Real-time Air Quality Monitor</div>
-      </div>
+  <section class="hero">
+    <div class="eyebrow rise d1">TVOC<span class="long"> · Total Volatile Organic Compounds</span></div>
+    <div class="state ko rise d2" id="state">대기 중</div>
+    <div class="reading rise d3">
+      <span id="tvoc">—</span><span class="unit">ppb</span>
     </div>
-    <div class="header-right">
-      <div class="status-pill">
-        <div class="live-dot" id="liveDot"></div>
-        <span id="connStatus">CONNECTING...</span>
-      </div>
-      <button class="icon-btn" id="muteBtn" title="알람 음소거">🔊</button>
-      <button class="icon-btn" id="settingsBtn" title="설정">⚙</button>
-    </div>
+    <div class="context ko rise d4" id="context">측정값을 기다리는 중입니다</div>
+  </section>
+
+  <div class="strip rise d5">
+    <div class="cell"><div class="k">eCO₂</div><div class="v" id="eco2">—<small>ppm</small></div></div>
+    <div class="cell"><div class="k">Baseline</div><div class="v" id="base">—<small>ppb</small></div></div>
+    <div class="cell"><div class="k">Peak today</div><div class="v" id="peak">—<small>ppb</small></div></div>
+    <div class="cell"><div class="k">Alerts today</div><div class="v" id="alerts">—<small>회</small></div></div>
+    <div class="cell"><div class="k">Uptime</div><div class="v" id="uptime">—</div></div>
   </div>
 
-  <!-- Hero -->
-  <div class="hero" id="hero">
-    <div class="hero-grid">
-      <div class="hero-main">
-        <div class="label">📡 TVOC · Volatile Organic Compounds</div>
-        <div class="tvoc-display">
-          <div class="tvoc-value g" id="tvocValue">--</div>
-          <div class="tvoc-unit">ppb</div>
-        </div>
-        <div class="tvoc-status">
-          <div class="status-indicator g" id="statusInd"></div>
-          <span id="statusText">데이터 로딩 중...</span>
-        </div>
-      </div>
-
-      <!-- Gauge -->
-      <div class="gauge">
-        <svg class="gauge-svg" viewBox="0 0 200 200">
-          <defs>
-            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#00d4aa"/>
-              <stop offset="50%" stop-color="#00b4ff"/>
-              <stop offset="100%" stop-color="#bf5af2"/>
-            </linearGradient>
-          </defs>
-          <circle class="gauge-bg" cx="100" cy="100" r="84"/>
-          <circle class="gauge-fg" id="gaugeFg" cx="100" cy="100" r="84"
-                  stroke-dasharray="528" stroke-dashoffset="528"/>
-        </svg>
-        <div class="gauge-text">
-          <div class="gauge-percent" id="gaugePercent">0%</div>
-          <div class="gauge-label">of Threshold</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Stats Grid -->
-  <div class="stats">
-    <div class="stat eco2-card">
-      <div class="stat-icon">💨</div>
-      <div class="stat-label">eCO2</div>
-      <div class="stat-value" id="eco2Value">--</div>
-      <div class="stat-sub">ppm</div>
-    </div>
-    <div class="stat base-card">
-      <div class="stat-icon">📊</div>
-      <div class="stat-label">Baseline</div>
-      <div class="stat-value" id="baseValue">--</div>
-      <div class="stat-sub">ppb · 평상시 기준값</div>
-    </div>
-    <div class="stat peak-card">
-      <div class="stat-icon">📈</div>
-      <div class="stat-label">Peak Today</div>
-      <div class="stat-value" id="peakValue">--</div>
-      <div class="stat-sub">ppb · 오늘 최고값</div>
-    </div>
-    <div class="stat alert-card">
-      <div class="stat-icon">🚨</div>
-      <div class="stat-label">Alerts Today</div>
-      <div class="stat-value" id="alertCount">--</div>
-      <div class="stat-sub" id="lastAlertTime">아직 없음</div>
-    </div>
-  </div>
-
-  <!-- Uptime + Control Card -->
-  <div class="grid-2" style="margin-bottom:24px;">
-    <div class="card" style="display:flex;align-items:center;gap:20px;">
-      <div style="font-size:40px;">⏱</div>
-      <div style="flex:1;">
-        <div class="small-label">SYSTEM UPTIME</div>
-        <div class="small-value g" id="uptimeValue">-- <span style="font-size:14px;opacity:.5">분</span></div>
-        <div style="font-size:11px;color:var(--text-faint);margin-top:4px;" id="uptimeStatus">대기 중...</div>
-      </div>
-    </div>
-    <div class="card" style="display:flex;align-items:center;gap:16px;">
-      <div style="font-size:40px;">🎮</div>
-      <div style="flex:1;">
-        <div class="small-label">REMOTE CONTROL</div>
-        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <button class="cmd-btn restart" id="restartBtn">🔄 재시작</button>
-          <button class="cmd-btn" id="testAlertCmdBtn">🚨 알림 테스트</button>
-          <button class="cmd-btn" id="resetBaseBtn">📊 기준값 리셋</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Chart -->
-  <div class="chart-card">
-    <div class="card-header">
-      <div>
-        <div class="card-title">📈 실시간 TVOC 추이</div>
-        <div class="card-sub">최근 200개 측정 · Threshold Line 포함</div>
-      </div>
-      <div class="chart-legend">
-        <div class="legend-item">
-          <div class="legend-dot" style="background:#00d4aa"></div>
-          <span>TVOC</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:#ff453a"></div>
-          <span>Threshold</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:#ff2d92"></div>
-          <span>Alert</span>
-        </div>
-      </div>
+  <section class="section">
+    <div class="head">
+      <h2 class="ko">측정 추이</h2>
+      <span class="note ko" id="chartNote">최근 200회</span>
     </div>
     <canvas id="chart"></canvas>
-  </div>
+  </section>
 
-  <!-- Log -->
-  <div class="log-card">
-    <div class="card-header">
-      <div>
-        <div class="card-title">📋 최근 활동</div>
-        <div class="card-sub">알림 + 측정 기록</div>
-      </div>
+  <section class="section">
+    <div class="head">
+      <h2 class="ko">최근 기록</h2>
+      <span class="note ko">20회</span>
     </div>
-    <div class="log-list" id="logList">
-      <div class="empty">
-        <div class="empty-icon">⏳</div>
-        <div>데이터 로딩 중...</div>
-      </div>
-    </div>
-  </div>
+    <div class="log" id="log"><div class="empty">불러오는 중</div></div>
+  </section>
 
 </div>
 
-<!-- Settings Panel -->
-<div class="settings-panel" id="settingsPanel">
-  <div class="settings-header">
-    <div class="settings-title">⚙ 설정</div>
-    <button class="close-btn" id="closeSettings">✕</button>
+<!-- 설정 -->
+<aside class="panel" id="panel" aria-label="설정">
+  <div class="panel-head">
+    <h3>설정</h3>
+    <button class="x" id="closePanel" aria-label="설정 닫기">✕</button>
   </div>
 
-  <div class="setting-section">
-    <div class="setting-label">
-      <span>🎯 알람 임계값 (Threshold)</span>
-      <span class="setting-value" id="thresholdValue">1500 ppb</span>
-    </div>
-    <input type="range" class="slider" id="thresholdSlider"
-           min="300" max="10000" step="100" value="1500">
-    <div class="setting-desc">
-      TVOC가 이 값을 초과하면 알람이 울립니다. 권장: 1500 ppb (초기 가설값).
-      실험으로 환경에 맞게 조정하세요.
-    </div>
+  <div class="block">
+    <div class="lbl"><span>감지 임계값</span><span class="val" id="thVal">1500 ppb</span></div>
+    <input type="range" id="thSlider" min="300" max="10000" step="100" value="1500">
+    <div class="desc">이 값을 넘으면 알람이 울립니다. 권장 1,500 ppb — 아직 실측으로 검증되지 않은 가설값입니다.</div>
   </div>
 
-  <div class="setting-section">
-    <div class="setting-label">
-      <span>🔊 알람 음량</span>
-      <span class="setting-value" id="volumeValue">70%</span>
-    </div>
-    <input type="range" class="slider" id="volumeSlider"
-           min="0" max="100" step="5" value="70">
-    <div class="setting-desc">
-      알람 소리 크기를 조절합니다.
-    </div>
+  <div class="block">
+    <div class="lbl"><span>알람 음량</span><span class="val" id="volVal">70%</span></div>
+    <input type="range" id="volSlider" min="0" max="100" step="5" value="70">
   </div>
 
-  <div class="setting-section">
-    <div class="setting-label">
-      <span>🔔 브라우저 알림</span>
-      <div class="toggle on" id="notifToggle"></div>
-    </div>
-    <div class="setting-desc">
-      탭이 백그라운드일 때도 시스템 알림으로 알려줍니다.
-    </div>
+  <div class="block">
+    <div class="lbl"><span>새로고침 주기</span><span class="val" id="refVal">10초</span></div>
+    <input type="range" id="refSlider" min="5" max="60" step="5" value="10">
   </div>
 
-  <div class="setting-section">
-    <div class="setting-label">
-      <span>🔁 자동 새로고침 주기</span>
-      <span class="setting-value" id="refreshValue">10초</span>
-    </div>
-    <input type="range" class="slider" id="refreshSlider"
-           min="5" max="60" step="5" value="10">
-    <div class="setting-desc">
-      Google Sheets에서 데이터를 가져오는 주기.
-      너무 짧으면 API 할당량 초과 가능.
+  <div class="block">
+    <div class="lbl"><span>브라우저 알림</span><div class="toggle on" id="notifToggle" role="switch" tabindex="0"></div></div>
+    <div class="desc">다른 탭을 보고 있을 때도 시스템 알림으로 알려줍니다.</div>
+  </div>
+
+  <div class="block">
+    <div class="lbl"><span>소리</span><div class="toggle on" id="soundToggle" role="switch" tabindex="0"></div></div>
+    <button class="btn" id="testAlarm" style="margin-top:14px;">알람 소리 들어보기</button>
+  </div>
+
+  <div class="block">
+    <div class="lbl"><span>기기 제어</span></div>
+    <div class="desc">명령은 20초 안에 전달되며, 5분이 지나면 폐기됩니다.</div>
+    <div class="cmds">
+      <button class="btn" id="cmdTest">알림 테스트</button>
+      <button class="btn" id="cmdBase">기준값 다시 학습</button>
+      <button class="btn warn" id="cmdRestart">기기 재시작</button>
     </div>
   </div>
 
-  <button class="test-btn" id="testAlarmBtn">🚨 알람 테스트</button>
-
-  <div class="setting-section" style="margin-top:20px;">
-    <div class="setting-label">
-      <span>👤 계정</span>
-      <span class="setting-value" id="accountName">-</span>
-    </div>
-    <button class="test-btn" id="passwdBtn"
-            style="margin-top:10px;background:rgba(255,255,255,.06);">비밀번호 변경</button>
-    <button class="test-btn" id="logoutBtn"
-            style="margin-top:8px;background:rgba(255,69,58,.14);">로그아웃</button>
+  <div class="block">
+    <div class="lbl"><span>계정</span><span class="val" id="who">—</span></div>
+    <button class="btn" id="pwBtn" style="margin-top:14px;">비밀번호 변경</button>
+    <button class="btn warn" id="outBtn">로그아웃</button>
   </div>
 
-  <!-- 관리자만 보이는 계정 관리 -->
-  <div class="setting-section" id="adminSection" style="margin-top:20px;display:none;">
-    <div class="setting-label"><span>👥 계정 관리</span></div>
-    <div class="setting-desc">이 대시보드에 접속할 수 있는 계정입니다.</div>
-    <div id="userList" class="user-list">불러오는 중…</div>
-
-    <div class="user-add">
-      <input id="newUserId" class="setup-input" spellcheck="false" placeholder="새 아이디">
-      <input id="newUserPw" class="setup-input" type="password" placeholder="비밀번호 (8자 이상)">
-      <select id="newUserRole" class="setup-input">
-        <option value="viewer">보기 전용</option>
-        <option value="admin">관리자</option>
-      </select>
-      <div id="userAddError" class="setup-error"></div>
-      <button class="test-btn" id="addUserBtn"
-              style="background:rgba(0,212,170,.16);">계정 추가</button>
-    </div>
+  <div class="block" id="adminBlock" hidden>
+    <div class="lbl"><span>계정 관리</span></div>
+    <div class="desc">이 대시보드에 접속할 수 있는 사람들입니다.</div>
+    <div class="users" id="users">불러오는 중</div>
+    <input class="field" id="newId" spellcheck="false" placeholder="새 아이디">
+    <input class="field" id="newPw" type="password" placeholder="비밀번호 (8자 이상)">
+    <select class="field" id="newRole">
+      <option value="viewer">보기 전용</option>
+      <option value="admin">관리자</option>
+    </select>
+    <div class="err" id="addErr"></div>
+    <button class="btn go" id="addBtn">계정 추가</button>
   </div>
-</div>
+</aside>
+
+<div id="toast"></div>
 
 <script src="config.js"></script>
 <script>
@@ -1160,13 +620,17 @@ canvas {
 const API_URL = window.VAPE_GUARD_API_URL ||
   "https://script.google.com/macros/s/AKfycbxMgPvyBkgdwT6_5ky4kDBrmmsn31fah2NimJGcLo7vuJ7UaczU3TNSAZ98Ht2i8EEzDg/exec";
 
-let refreshTimer = null;   // showLogin 이 먼저 참조하므로 여기서 선언
+let refreshTimer = null;
 
 const TOKEN_KEY = 'vapeGuardToken';
 const USER_KEY  = 'vapeGuardUser';
 const ROLE_KEY  = 'vapeGuardRole';
 
-function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
+function getToken()    { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
+function currentUser() { try { return localStorage.getItem(USER_KEY)  || ""; } catch (e) { return ""; } }
+function currentRole() { try { return localStorage.getItem(ROLE_KEY)  || "viewer"; } catch (e) { return "viewer"; } }
+function isAdmin()     { return currentRole() === 'admin'; }
+
 function setAuth(token, id, role) {
   try {
     localStorage.setItem(TOKEN_KEY, token);
@@ -1174,8 +638,6 @@ function setAuth(token, id, role) {
     localStorage.setItem(ROLE_KEY, role || "viewer");
   } catch (e) {}
 }
-function currentRole() { try { return localStorage.getItem(ROLE_KEY) || "viewer"; } catch (e) { return "viewer"; } }
-function isAdmin() { return currentRole() === 'admin'; }
 function clearAuth() {
   try {
     localStorage.removeItem(TOKEN_KEY);
@@ -1183,127 +645,119 @@ function clearAuth() {
     localStorage.removeItem(ROLE_KEY);
   } catch (e) {}
 }
-function currentUser() { try { return localStorage.getItem(USER_KEY) || ""; } catch (e) { return ""; } }
 
-// 계정이 하나도 없으면 "관리자 만들기", 있으면 "로그인" 화면
+/** 계정이 하나도 없으면 "계정 만들기", 있으면 "로그인" */
 async function showAuthGate() {
   let needSetup = false;
   try {
     const r = await fetch(API_URL + '?action=status&t=' + Date.now());
-    const d = await r.json();
-    needSetup = !!d.needSetup;
-  } catch (e) { /* 서버가 안 되면 그냥 로그인 화면 */ }
+    needSetup = !!(await r.json()).needSetup;
+  } catch (e) { /* 서버가 응답 없으면 로그인 화면으로 */ }
   needSetup ? showRegister() : showLogin();
 }
 
-function showRegister() {
-  if (document.getElementById('loginOverlay')) return;
-  if (refreshTimer) clearInterval(refreshTimer);
-
+function gateShell(title, sub, body, fine) {
   const el = document.createElement('div');
-  el.id = 'loginOverlay';
+  el.className = 'gate';
+  el.id = 'gate';
   el.innerHTML =
-    '<div class="setup-box">' +
-      '<div class="setup-icon">🛡</div>' +
-      '<div class="setup-title">관리자 계정 만들기</div>' +
-      '<div class="setup-sub">계정이 아직 없습니다. 처음 만드는 계정이 관리자가 됩니다.</div>' +
-      '<input id="regId" class="setup-input" spellcheck="false" autocomplete="username" placeholder="아이디">' +
-      '<input id="regPw" class="setup-input" type="password" autocomplete="new-password" ' +
-        'placeholder="비밀번호 (8자 이상)" style="margin-top:10px;">' +
-      '<input id="regPw2" class="setup-input" type="password" autocomplete="new-password" ' +
-        'placeholder="비밀번호 확인" style="margin-top:10px;">' +
-      '<div id="regError" class="setup-error"></div>' +
-      '<button id="regBtn" class="setup-btn">만들고 시작하기</button>' +
-      '<div class="setup-note">이 화면은 계정이 하나도 없을 때만 나타납니다.<br>' +
-        '계정이 생기면 이 통로는 영구히 닫힙니다.</div>' +
+    '<div class="gate-box">' +
+      '<div class="gate-mark"><span class="beacon"></span> Vape Guard</div>' +
+      '<h1>' + title + '</h1>' +
+      '<p>' + sub + '</p>' +
+      body +
+      '<div class="fine">' + fine + '</div>' +
     '</div>';
   document.body.appendChild(el);
+  return el;
+}
 
-  const idEl = document.getElementById('regId');
-  const pwEl = document.getElementById('regPw');
-  const pw2El = document.getElementById('regPw2');
-  const errEl = document.getElementById('regError');
-  const btn = document.getElementById('regBtn');
-  idEl.focus();
+function showRegister() {
+  if (document.getElementById('gate')) return;
+  if (refreshTimer) clearInterval(refreshTimer);
 
-  async function submit() {
-    const id = idEl.value.trim(), pw = pwEl.value;
-    if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
-    if (pw.length < 8) { errEl.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
-    if (pw !== pw2El.value) { errEl.textContent = '비밀번호가 서로 다릅니다.'; return; }
+  const el = gateShell(
+    '첫 계정을<br>만들어 주세요',
+    '아직 계정이 없습니다. 처음 만드는 계정이 관리자가 됩니다.',
+    '<input class="field" id="rId" spellcheck="false" autocomplete="username" placeholder="아이디">' +
+    '<input class="field" id="rPw" type="password" autocomplete="new-password" placeholder="비밀번호 (8자 이상)">' +
+    '<input class="field" id="rPw2" type="password" autocomplete="new-password" placeholder="비밀번호 확인">' +
+    '<div class="err" id="rErr"></div>' +
+    '<button class="btn go" id="rBtn">만들고 시작하기</button>',
+    '이 화면은 계정이 하나도 없을 때만 나타납니다. 계정이 생기면 다시 열리지 않습니다.'
+  );
 
-    btn.disabled = true; btn.textContent = '만드는 중…'; errEl.textContent = '';
+  const id = el.querySelector('#rId'), pw = el.querySelector('#rPw'),
+        pw2 = el.querySelector('#rPw2'), err = el.querySelector('#rErr'),
+        btn = el.querySelector('#rBtn');
+  id.focus();
+
+  async function go() {
+    err.textContent = '';
+    if (!id.value.trim() || !pw.value) { err.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+    if (pw.value.length < 8) { err.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
+    if (pw.value !== pw2.value) { err.textContent = '두 비밀번호가 다릅니다.'; return; }
+
+    btn.disabled = true; btn.textContent = '만드는 중';
     try {
-      const r = await fetch(API_URL + '?action=register&id=' + encodeURIComponent(id) +
-                            '&pw=' + encodeURIComponent(pw) + '&t=' + Date.now());
+      const r = await fetch(API_URL + '?action=register&id=' + encodeURIComponent(id.value.trim()) +
+                            '&pw=' + encodeURIComponent(pw.value) + '&t=' + Date.now());
       const d = await r.json();
-      if (!d.ok) throw new Error(d.error || '생성 실패');
+      if (!d.ok) throw new Error(d.error || '계정을 만들지 못했습니다');
       setAuth(d.token, d.id, d.role);
       el.remove();
-      fetchData();
-      restartInterval();
+      start();
     } catch (e) {
-      errEl.textContent = e.message;
+      err.textContent = e.message;
     } finally {
       btn.disabled = false; btn.textContent = '만들고 시작하기';
     }
   }
-  btn.addEventListener('click', submit);
-  [idEl, pwEl, pw2El].forEach(x =>
-    x.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+  btn.addEventListener('click', go);
+  [id, pw, pw2].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }));
 }
 
 function showLogin(message) {
-  if (document.getElementById('loginOverlay')) return;
+  if (document.getElementById('gate')) return;
   if (refreshTimer) clearInterval(refreshTimer);
 
-  const el = document.createElement('div');
-  el.id = 'loginOverlay';
-  el.innerHTML =
-    '<div class="setup-box">' +
-      '<div class="setup-icon">🛡</div>' +
-      '<div class="setup-title">VAPE GUARD</div>' +
-      '<div class="setup-sub">' + (message || '로그인이 필요합니다.') + '</div>' +
-      '<input id="loginId" class="setup-input" spellcheck="false" autocomplete="username" placeholder="아이디">' +
-      '<input id="loginPw" class="setup-input" type="password" autocomplete="current-password" ' +
-        'placeholder="비밀번호" style="margin-top:10px;">' +
-      '<div id="loginError" class="setup-error"></div>' +
-      '<button id="loginBtn" class="setup-btn">로그인</button>' +
-      '<div class="setup-note">계정은 관리자가 Apps Script에서 만듭니다.</div>' +
-    '</div>';
-  document.body.appendChild(el);
+  const el = gateShell(
+    '로그인',
+    message || '이 대시보드는 계정이 있어야 볼 수 있습니다.',
+    '<input class="field" id="lId" spellcheck="false" autocomplete="username" placeholder="아이디">' +
+    '<input class="field" id="lPw" type="password" autocomplete="current-password" placeholder="비밀번호">' +
+    '<div class="err" id="lErr"></div>' +
+    '<button class="btn go" id="lBtn">들어가기</button>',
+    '계정이 필요하면 관리자에게 발급받으세요.'
+  );
 
-  const idEl = document.getElementById('loginId');
-  const pwEl = document.getElementById('loginPw');
-  const errEl = document.getElementById('loginError');
-  const btn = document.getElementById('loginBtn');
-  idEl.value = currentUser();
-  (idEl.value ? pwEl : idEl).focus();
+  const id = el.querySelector('#lId'), pw = el.querySelector('#lPw'),
+        err = el.querySelector('#lErr'), btn = el.querySelector('#lBtn');
+  id.value = currentUser();
+  (id.value ? pw : id).focus();
 
-  async function submit() {
-    const id = idEl.value.trim(), pw = pwEl.value;
-    if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+  async function go() {
+    err.textContent = '';
+    if (!id.value.trim() || !pw.value) { err.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
 
-    btn.disabled = true; btn.textContent = '확인 중…'; errEl.textContent = '';
+    btn.disabled = true; btn.textContent = '확인 중';
     try {
-      const r = await fetch(API_URL + '?action=login&id=' + encodeURIComponent(id) +
-                            '&pw=' + encodeURIComponent(pw) + '&t=' + Date.now());
+      const r = await fetch(API_URL + '?action=login&id=' + encodeURIComponent(id.value.trim()) +
+                            '&pw=' + encodeURIComponent(pw.value) + '&t=' + Date.now());
       const d = await r.json();
-      if (!d.ok) throw new Error(d.error || '로그인 실패');
+      if (!d.ok) throw new Error(d.error || '로그인하지 못했습니다');
       setAuth(d.token, d.id, d.role);
       el.remove();
-      fetchData();
-      restartInterval();
+      start();
     } catch (e) {
-      errEl.textContent = e.message;
-      pwEl.value = '';
-      pwEl.focus();
+      err.textContent = e.message;
+      pw.value = ''; pw.focus();
     } finally {
-      btn.disabled = false; btn.textContent = '로그인';
+      btn.disabled = false; btn.textContent = '들어가기';
     }
   }
-  btn.addEventListener('click', submit);
-  [idEl, pwEl].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+  btn.addEventListener('click', go);
+  [id, pw].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }));
 }
 
 async function doLogout() {
@@ -1316,61 +770,133 @@ async function doLogout() {
 // ============================================
 // 설정
 // ============================================
-let settings = {
-  threshold: 1500,
-  volume: 70,
-  notifications: true,
-  refreshInterval: 10
-};
-
-// localStorage에서 복원
+let settings = { threshold: 1500, volume: 70, notifications: true, sound: true, refreshInterval: 10 };
 try {
   const saved = localStorage.getItem('vapeGuardSettings');
-  if (saved) settings = { ...settings, ...JSON.parse(saved) };
-} catch(e) {}
-
+  if (saved) settings = Object.assign(settings, JSON.parse(saved));
+} catch (e) {}
 function saveSettings() {
-  localStorage.setItem('vapeGuardSettings', JSON.stringify(settings));
+  try { localStorage.setItem('vapeGuardSettings', JSON.stringify(settings)); } catch (e) {}
 }
 
 // ============================================
-// 알람 시스템 (Web Audio API)
+// 상태 판정 — 숫자가 아니라 "단어"가 주인공입니다
 // ============================================
-let audioCtx = null;
-let alarmPlaying = false;
-let alarmTimeout = null;
+const STATES = [
+  { at: 1.00, word: '감지됨',   tone: 'var(--alarm)', key: 'detected' },
+  { at: 0.70, word: '경고',     tone: 'var(--rise)',  key: 'warning'  },
+  { at: 0.30, word: '상승',     tone: 'var(--note)',  key: 'elevated' },
+  { at: 0.00, word: '깨끗함',   tone: 'var(--calm)',  key: 'clear'    }
+];
+function stateFor(tvoc) {
+  const ratio = tvoc / Math.max(1, settings.threshold);
+  return STATES.find(s => ratio >= s.at) || STATES[STATES.length - 1];
+}
+
+// ============================================
+// 시그니처 — 공기 장
+// 보이지 않는 공기를 보이게 만듭니다.
+// TVOC 가 오르면 입자가 많아지고 빨라지고 색이 변합니다.
+// ============================================
+const field = (() => {
+  const cv = document.getElementById('airfield');
+  const ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let w = 0, h = 0, dpr = 1, parts = [], intensity = 0, target = 0, tone = [207, 232, 220];
+
+  function size() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = cv.width = innerWidth * dpr;
+    h = cv.height = innerHeight * dpr;
+    cv.style.width = innerWidth + 'px';
+    cv.style.height = innerHeight + 'px';
+  }
+
+  function seed(n) {
+    parts = [];
+    for (let i = 0; i < n; i++) {
+      parts.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: (28 + Math.random() * 92) * dpr,
+        vy: -(0.06 + Math.random() * 0.2) * dpr,
+        sway: Math.random() * Math.PI * 2,
+        swayRate: 0.0016 + Math.random() * 0.0042,
+        a: 0.04 + Math.random() * 0.09
+      });
+    }
+  }
+
+  function draw() {
+    intensity += (target - intensity) * 0.02;   // 부드럽게 따라갑니다
+    ctx.clearRect(0, 0, w, h);
+
+    const speed = 1 + intensity * 4.5;
+    const alpha = 0.5 + intensity * 1.9;
+    const [cr, cg, cb] = tone;
+
+    for (const p of parts) {
+      p.y += p.vy * speed;
+      p.sway += p.swayRate * speed;
+      const x = p.x + Math.sin(p.sway) * 34 * dpr * (1 + intensity * 1.6);
+      if (p.y + p.r < 0) { p.y = h + p.r; p.x = Math.random() * w; }
+
+      const g = ctx.createRadialGradient(x, p.y, 0, x, p.y, p.r);
+      g.addColorStop(0, `rgba(${cr},${cg},${cb},${p.a * alpha})`);
+      g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  if (!reduce) {
+    size();
+    seed(window.innerWidth < 760 ? 20 : 34);
+    addEventListener('resize', () => { size(); seed(window.innerWidth < 760 ? 20 : 34); });
+    requestAnimationFrame(draw);
+  }
+
+  return {
+    set(ratio, rgb) {
+      target = Math.max(0, Math.min(1, ratio));
+      if (rgb) tone = rgb;
+    }
+  };
+})();
+
+const TONE_RGB = {
+  clear:    [207, 232, 220],
+  elevated: [159, 217, 192],
+  warning:  [240, 192, 112],
+  detected: [255,  77,  61]
+};
+
+// ============================================
+// 알람
+// ============================================
+let audioCtx = null, alarmPlaying = false;
 
 function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
 function playAlarm() {
-  if (alarmPlaying) return;
-  if (document.getElementById('muteBtn').dataset.muted === '1') return;
-
+  if (alarmPlaying || !settings.sound) return;
   initAudio();
   alarmPlaying = true;
 
-  const ctx = audioCtx;
-  const startTime = ctx.currentTime;
-  const duration = 3.0;
+  const ctx = audioCtx, t0 = ctx.currentTime, dur = 3.0;
+  const osc1 = ctx.createOscillator(), osc2 = ctx.createOscillator();
+  const gain = ctx.createGain(), filter = ctx.createBiquadFilter();
 
-  // 사이렌 효과: 두 개의 오실레이터
-  const osc1 = ctx.createOscillator();
-  const osc2 = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const filter = ctx.createBiquadFilter();
+  osc1.type = 'sine'; osc2.type = 'triangle';
+  filter.type = 'lowpass'; filter.frequency.value = 2000;
 
-  osc1.type = 'sine';
-  osc2.type = 'triangle';
-  filter.type = 'lowpass';
-  filter.frequency.value = 2000;
-
-  // 사이렌처럼 주파수가 오르락내리락
   for (let i = 0; i < 6; i++) {
-    const t = startTime + i * 0.5;
+    const t = t0 + i * 0.5;
     osc1.frequency.setValueAtTime(800, t);
     osc1.frequency.exponentialRampToValueAtTime(1200, t + 0.25);
     osc1.frequency.exponentialRampToValueAtTime(800, t + 0.5);
@@ -1379,575 +905,413 @@ function playAlarm() {
     osc2.frequency.exponentialRampToValueAtTime(400, t + 0.5);
   }
 
-  const volume = settings.volume / 100 * 0.3;
-  gain.gain.setValueAtTime(0, startTime);
-  gain.gain.linearRampToValueAtTime(volume, startTime + 0.05);
-  gain.gain.setValueAtTime(volume, startTime + duration - 0.2);
-  gain.gain.linearRampToValueAtTime(0, startTime + duration);
+  const vol = settings.volume / 100 * 0.3;
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(vol, t0 + 0.05);
+  gain.gain.setValueAtTime(vol, t0 + dur - 0.2);
+  gain.gain.linearRampToValueAtTime(0, t0 + dur);
 
-  osc1.connect(filter);
-  osc2.connect(filter);
-  filter.connect(gain);
-  gain.connect(ctx.destination);
+  osc1.connect(filter); osc2.connect(filter);
+  filter.connect(gain); gain.connect(ctx.destination);
+  osc1.start(t0); osc2.start(t0);
+  osc1.stop(t0 + dur); osc2.stop(t0 + dur);
 
-  osc1.start(startTime);
-  osc2.start(startTime);
-  osc1.stop(startTime + duration);
-  osc2.stop(startTime + duration);
-
-  // 진동 (모바일)
-  if (navigator.vibrate) {
-    navigator.vibrate([300, 100, 300, 100, 300]);
-  }
-
-  setTimeout(() => { alarmPlaying = false; }, duration * 1000);
+  if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+  setTimeout(() => { alarmPlaying = false; }, dur * 1000);
 }
 
 // ============================================
-// 차트 그리기
+// 차트 — 액자 없는 얇은 선 하나
 // ============================================
 let chartData = [];
 
 function drawChart() {
   const c = document.getElementById('chart');
   const ctx = c.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = c.width = c.offsetWidth * dpr;
   const h = c.height = c.offsetHeight * dpr;
-
   ctx.clearRect(0, 0, w, h);
   if (chartData.length < 2) return;
 
-  const padding = 30 * dpr;
-  const innerW = w - padding * 2;
-  const innerH = h - padding * 2;
+  const padT = 22 * dpr, padB = 18 * dpr;
+  const innerH = h - padT - padB;
 
-  const tvocs = chartData.map(d => d.tvoc);
-  const max = Math.max(...tvocs, settings.threshold * 1.2, 500);
-  const min = 0;
+  // 스케일은 실제 데이터에 맞춥니다.
+  // 임계값까지 억지로 포함시키면 평상시(20 ppb 남짓)에는 선이 바닥에 깔려
+  // 아무것도 읽을 수 없게 됩니다. 임계값은 화면에 들어올 때만 그립니다.
+  const peak = Math.max(...chartData.map(d => d.tvoc));
+  const max = Math.max(peak * 1.35, 60);
+  const X = i => (i / Math.max(1, chartData.length - 1)) * w;
+  const Y = v => padT + innerH * (1 - v / max);
 
-  // 격자
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth = 1 * dpr;
-  for (let i = 0; i <= 5; i++) {
-    const y = padding + (innerH * i / 5);
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(padding + innerW, y);
-    ctx.stroke();
+  ctx.font = `${9 * dpr}px 'IBM Plex Mono', monospace`;
+
+  if (settings.threshold <= max) {
+    const ty = Y(settings.threshold);
+    ctx.strokeStyle = 'rgba(255,77,61,.35)';
+    ctx.lineWidth = 1 * dpr;
+    ctx.setLineDash([3 * dpr, 5 * dpr]);
+    ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(w, ty); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,77,61,.6)';
+    ctx.textAlign = 'left';
+    ctx.fillText('임계값 ' + settings.threshold.toLocaleString(), 0, ty - 7 * dpr);
+  } else {
+    // 임계값이 한참 위 — 지금은 그만큼 안전하다는 뜻입니다.
+    ctx.fillStyle = 'rgba(126,145,139,.75)';
+    ctx.textAlign = 'right';
+    ctx.fillText('임계값 ' + settings.threshold.toLocaleString() + ' · 범위 밖', w, 11 * dpr);
   }
 
-  // Y축 라벨
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = `${10 * dpr}px JetBrains Mono`;
-  ctx.textAlign = 'right';
-  for (let i = 0; i <= 5; i++) {
-    const value = max - (max * i / 5);
-    const y = padding + (innerH * i / 5);
-    ctx.fillText(Math.round(value).toLocaleString(), padding - 8 * dpr, y + 4 * dpr);
-  }
-
-  // Threshold 라인
-  const thresholdY = padding + innerH * (1 - settings.threshold / max);
-  ctx.strokeStyle = 'rgba(255, 69, 58, 0.6)';
-  ctx.lineWidth = 2 * dpr;
-  ctx.setLineDash([8 * dpr, 4 * dpr]);
-  ctx.beginPath();
-  ctx.moveTo(padding, thresholdY);
-  ctx.lineTo(padding + innerW, thresholdY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.fillStyle = 'rgba(255, 69, 58, 0.8)';
-  ctx.font = `bold ${10 * dpr}px JetBrains Mono`;
+  // 최고점 눈금
+  ctx.fillStyle = 'rgba(126,145,139,.75)';
   ctx.textAlign = 'left';
-  ctx.fillText('THRESHOLD ' + settings.threshold, padding + 8 * dpr, thresholdY - 8 * dpr);
+  ctx.fillText(peak.toLocaleString(), 0, 11 * dpr);
 
-  // 데이터 라인
-  const pts = chartData.map((d, i) => ({
-    x: padding + (i / Math.max(1, chartData.length - 1)) * innerW,
-    y: padding + innerH * (1 - d.tvoc / max),
-    alert: d.alert
-  }));
+  const pts = chartData.map((d, i) => ({ x: X(i), y: Y(d.tvoc), alert: d.alert }));
 
-  // 그라데이션 영역
-  const grad = ctx.createLinearGradient(0, padding, 0, padding + innerH);
-  grad.addColorStop(0, 'rgba(0, 212, 170, 0.4)');
-  grad.addColorStop(1, 'rgba(0, 212, 170, 0)');
-  ctx.fillStyle = grad;
+  // 면
+  const g = ctx.createLinearGradient(0, padT, 0, h - padB);
+  g.addColorStop(0, 'rgba(207,232,220,.16)');
+  g.addColorStop(1, 'rgba(207,232,220,0)');
+  ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.moveTo(pts[0].x, padding + innerH);
+  ctx.moveTo(pts[0].x, h - padB);
   pts.forEach(p => ctx.lineTo(p.x, p.y));
-  ctx.lineTo(pts[pts.length-1].x, padding + innerH);
-  ctx.closePath();
-  ctx.fill();
+  ctx.lineTo(pts[pts.length - 1].x, h - padB);
+  ctx.closePath(); ctx.fill();
 
-  // 라인
-  ctx.strokeStyle = '#00d4aa';
-  ctx.lineWidth = 2.5 * dpr;
+  // 선
+  ctx.strokeStyle = '#CFE8DC';
+  ctx.lineWidth = 1.25 * dpr;
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
   ctx.stroke();
 
-  // 알림 마커
-  pts.forEach((p, i) => {
-    if (p.alert) {
-      ctx.fillStyle = '#ff2d92';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 5 * dpr, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255, 45, 146, 0.3)';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 12 * dpr, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  // 감지 지점
+  pts.forEach(p => {
+    if (!p.alert) return;
+    ctx.fillStyle = '#FF4D3D';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * dpr, 0, Math.PI * 2); ctx.fill();
   });
 
-  // 마지막 점 (현재값) 강조
+  // 현재 지점
   const last = pts[pts.length - 1];
-  ctx.fillStyle = last.alert ? '#ff2d92' : '#00d4aa';
-  ctx.beginPath();
-  ctx.arc(last.x, last.y, 6 * dpr, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-  ctx.lineWidth = 2 * dpr;
-  ctx.stroke();
+  ctx.fillStyle = last.alert ? '#FF4D3D' : '#CFE8DC';
+  ctx.beginPath(); ctx.arc(last.x, last.y, 3 * dpr, 0, Math.PI * 2); ctx.fill();
 }
 
 // ============================================
-// UI 업데이트
+// 화면 갱신
 // ============================================
-let lastAlertTime = 0;
+let lastAlertAt = 0;
+let lastStateKey = null;
 
-function getColorClass(tvoc) {
-  if (tvoc >= settings.threshold) return 'r';
-  if (tvoc >= settings.threshold * 0.7) return 'o';
-  if (tvoc >= settings.threshold * 0.3) return 'y';
-  return 'g';
+function relTime(d) {
+  const s = Math.floor((Date.now() - d) / 1000);
+  if (s < 60) return s + '초 전';
+  if (s < 3600) return Math.floor(s / 60) + '분 전';
+  if (s < 86400) return Math.floor(s / 3600) + '시간 전';
+  return d.toLocaleDateString('ko-KR');
 }
 
-function getStatus(tvoc, baseline) {
-  if (tvoc >= settings.threshold) return '🚨 ALERT · 임계값 초과!';
-  if (tvoc >= settings.threshold * 0.7) return '⚠ 경고 · 임계값 접근';
-  if (tvoc >= settings.threshold * 0.3) return '⚡ 주의 · 평소보다 높음';
-  return '✓ 정상 범위';
+function fmtUptime(min) {
+  if (min < 60) return min + '<small>분</small>';
+  if (min < 1440) return Math.floor(min / 60) + '<small>시간</small> ' + (min % 60) + '<small>분</small>';
+  return Math.floor(min / 1440) + '<small>일</small> ' + Math.floor((min % 1440) / 60) + '<small>시간</small>';
 }
 
-function formatRelativeTime(date) {
-  const now = new Date();
-  const diff = Math.floor((now - date) / 1000);
-  if (diff < 60) return `${diff}초 전`;
-  if (diff < 3600) return `${Math.floor(diff/60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff/3600)}시간 전`;
-  return date.toLocaleDateString('ko-KR');
-}
+function setText(id, v) { document.getElementById(id).innerHTML = v; }
 
 function updateUI(data) {
-  if (!data || !data.rows || data.rows.length === 0) {
-    document.getElementById('logList').innerHTML = '<div class="empty"><div class="empty-icon">📡</div><div>아직 데이터가 없어요.<br>ESP32에서 데이터 전송 대기 중...</div></div>';
+  const rows = data.rows || [];
+  if (!rows.length) {
+    document.getElementById('log').innerHTML =
+      '<div class="empty">아직 기록이 없습니다. 기기가 데이터를 보내면 여기에 쌓입니다.</div>';
     return;
   }
 
-  const { rows, stats } = data;
+  const stats = data.stats || {};
   chartData = rows;
 
   const tvoc = stats.currentTvoc || 0;
-  const cls = getColorClass(tvoc);
+  const st = stateFor(tvoc);
 
-  // TVOC 값
-  const tvocEl = document.getElementById('tvocValue');
-  tvocEl.textContent = tvoc.toLocaleString();
-  tvocEl.className = 'tvoc-value ' + cls;
+  // 상태색을 페이지 전체에 전파
+  document.documentElement.style.setProperty('--state', st.tone);
+  field.set(tvoc / Math.max(1, settings.threshold), TONE_RGB[st.key]);
 
-  // 게이지
-  const percent = Math.min(100, Math.round((tvoc / settings.threshold) * 100));
-  const dashOffset = 528 - (528 * percent / 100);
-  document.getElementById('gaugeFg').style.strokeDashoffset = dashOffset;
-  document.getElementById('gaugePercent').textContent = percent + '%';
+  // 상태 단어
+  const stateEl = document.getElementById('state');
+  if (st.key !== lastStateKey) {
+    stateEl.classList.remove('swap');
+    void stateEl.offsetWidth;
+    stateEl.classList.add('swap');
+    stateEl.textContent = st.word;
+    lastStateKey = st.key;
+  }
 
-  // 상태
-  document.getElementById('statusText').textContent = getStatus(tvoc, stats.currentBase);
-  const ind = document.getElementById('statusInd');
-  ind.className = 'status-indicator ' + cls;
+  document.getElementById('tvoc').textContent = tvoc.toLocaleString();
+  document.getElementById('room').textContent = rows[rows.length - 1].device || '—';
 
-  // 알림 (임계값 초과)
-  const hero = document.getElementById('hero');
-  const banner = document.getElementById('alertBanner');
-  const isAlerting = tvoc >= settings.threshold;
+  const base = stats.currentBase || 0;
+  document.getElementById('context').innerHTML =
+    '평상시 <b>' + base.toLocaleString() + '</b> · 임계값 <b>' +
+    settings.threshold.toLocaleString() + '</b>';
 
-  if (isAlerting) {
-    hero.classList.add('alert');
-    banner.classList.add('show');
-    document.getElementById('alertBannerText').textContent =
-      `VAPE DETECTED · ${tvoc.toLocaleString()} ppb`;
-
-    // 알람 트리거 (30초 쿨다운)
-    if (Date.now() - lastAlertTime > 30000) {
-      playAlarm();
-
-      if (settings.notifications && Notification.permission === 'granted') {
-        new Notification('🚨 전자담배 감지!', {
-          body: `TVOC: ${tvoc.toLocaleString()} ppb (임계값 ${settings.threshold} ppb 초과)`,
-          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23ff453a"/></svg>'
-        });
-      }
-
-      lastAlertTime = Date.now();
+  // 감지
+  const detected = tvoc >= settings.threshold;
+  document.body.classList.toggle('detected', detected);
+  if (detected && Date.now() - lastAlertAt > 30000) {
+    playAlarm();
+    if (settings.notifications && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification('전자담배 감지', { body: 'TVOC ' + tvoc.toLocaleString() + ' ppb' });
     }
-  } else {
-    hero.classList.remove('alert');
-    banner.classList.remove('show');
+    lastAlertAt = Date.now();
   }
 
-  // 통계
-  document.getElementById('eco2Value').textContent = (stats.currentEco2 || 0).toLocaleString();
-  document.getElementById('baseValue').textContent = (stats.currentBase || 0).toLocaleString();
+  // 스트립
+  setText('eco2',  (stats.currentEco2 || 0).toLocaleString() + '<small>ppm</small>');
+  setText('base',  base.toLocaleString() + '<small>ppb</small>');
 
-  const peakToday = Math.max(...rows.filter(r => {
-    const today = new Date(); today.setHours(0,0,0,0);
-    return new Date(r.time) >= today;
-  }).map(r => r.tvoc), 0);
-  document.getElementById('peakValue').textContent = peakToday.toLocaleString();
+  const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+  const today = rows.filter(r => new Date(r.time) >= midnight);
+  setText('peak', (today.length ? Math.max(...today.map(r => r.tvoc)) : 0).toLocaleString() + '<small>ppb</small>');
+  setText('alerts', (stats.todayAlerts || 0) + '<small>회</small>');
+  setText('uptime', fmtUptime(stats.currentUptime || 0));
 
-  document.getElementById('alertCount').textContent = stats.todayAlerts || 0;
-
-  const lastAlert = [...rows].reverse().find(r => r.alert);
-  if (lastAlert) {
-    document.getElementById('lastAlertTime').textContent =
-      '마지막: ' + formatRelativeTime(new Date(lastAlert.time));
-  }
-
-  // Uptime 표시
-  const uptime = stats.currentUptime || 0;
-  const uptimeEl = document.getElementById('uptimeValue');
-  let uptimeStr, uptimeUnit;
-  if (uptime < 60) {
-    uptimeStr = uptime;
-    uptimeUnit = '분';
-  } else if (uptime < 1440) {
-    uptimeStr = (uptime / 60).toFixed(1);
-    uptimeUnit = '시간';
-  } else {
-    uptimeStr = (uptime / 1440).toFixed(1);
-    uptimeUnit = '일';
-  }
-  uptimeEl.innerHTML = `${uptimeStr} <span style="font-size:14px;opacity:.5">${uptimeUnit}</span>`;
-
-  // 마지막 업데이트 기준 연결 상태 판단
+  // 연결 상태
+  const beacon = document.getElementById('beacon');
+  const conn = document.getElementById('conn');
   if (stats.lastUpdate) {
-    const lastT = new Date(stats.lastUpdate);
-    const ageSec = (new Date() - lastT) / 1000;
-    const statusEl = document.getElementById('uptimeStatus');
-    if (ageSec < 30) {
-      statusEl.textContent = '🟢 정상 가동 중';
-      statusEl.style.color = '#00d4aa';
-    } else if (ageSec < 120) {
-      statusEl.textContent = '🟡 최근 ' + Math.floor(ageSec) + '초 동안 응답 없음';
-      statusEl.style.color = '#ffd60a';
+    const age = (Date.now() - new Date(stats.lastUpdate)) / 1000;
+    if (age < 40) {
+      conn.textContent = '수신 중';
+      conn.classList.remove('dead'); beacon.classList.remove('dead');
     } else {
-      statusEl.textContent = '🔴 ' + formatRelativeTime(lastT) + ' 이후 응답 없음!';
-      statusEl.style.color = '#ff453a';
+      conn.textContent = relTime(new Date(stats.lastUpdate)) + ' 끊김';
+      conn.classList.add('dead'); beacon.classList.add('dead');
     }
   }
 
-  // 차트
   drawChart();
 
-  // 로그 (최근 알림 우선, 그 다음 최근 측정)
-  const recent = [...rows].reverse().slice(0, 20);
-  const logHtml = recent.map(r => {
+  // 기록
+  const max = Math.max(...rows.map(r => r.tvoc), settings.threshold, 60);
+  document.getElementById('log').innerHTML = rows.slice(-20).reverse().map(r => {
     const t = new Date(r.time);
-    const icon = r.alert ? '🚨' : '📊';
-    const badge = r.alert ? 'badge-alert' : 'badge-ok';
-    const badgeText = r.alert ? 'ALERT' : 'OK';
-    const tvocColor = getColorClass(r.tvoc);
-    return `
-      <div class="log-item ${r.alert ? 'alert' : ''}">
-        <div class="log-left">
-          <div class="log-icon">${icon}</div>
-          <div class="log-info">
-            <div class="device">📍 ${r.device || 'Unknown'}</div>
-            <div class="time">${t.toLocaleString('ko-KR', {hour:'2-digit', minute:'2-digit', second:'2-digit'})} · ${formatRelativeTime(t)}</div>
-          </div>
-        </div>
-        <div class="log-right">
-          <div class="log-tvoc ${tvocColor}">${r.tvoc.toLocaleString()} ppb</div>
-          <span class="log-badge ${badge}">${badgeText}</span>
-        </div>
-      </div>
-    `;
+    const pct = Math.max(1.5, (r.tvoc / max) * 100);
+    return '<div class="row' + (r.alert ? ' hot' : '') + '">' +
+      '<div class="t">' + t.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + '</div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="n">' + r.tvoc.toLocaleString() + '</div>' +
+    '</div>';
   }).join('');
-  document.getElementById('logList').innerHTML = logHtml ||
-    '<div class="empty"><div class="empty-icon">✓</div><div>모두 정상</div></div>';
 }
 
 // ============================================
-// 데이터 가져오기
+// 데이터
 // ============================================
 async function fetchData() {
   const token = getToken();
-  if (!token) { showLogin(); return; }
+  if (!token) { showAuthGate(); return; }
   try {
-    const r = await fetch(API_URL + '?action=read&token=' + encodeURIComponent(token) +
-                          '&t=' + Date.now());
+    const r = await fetch(API_URL + '?action=read&token=' + encodeURIComponent(token) + '&t=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
 
     if (data.needLogin) { clearAuth(); showLogin('세션이 만료되었습니다. 다시 로그인해 주세요.'); return; }
     if (data.error) throw new Error(data.error);
 
-    document.getElementById('liveDot').classList.remove('offline');
-    document.getElementById('connStatus').textContent = '● LIVE';
-
     updateUI(data);
   } catch (e) {
-    console.error('Fetch error:', e);
-    document.getElementById('liveDot').classList.add('offline');
-    document.getElementById('connStatus').textContent = '● 연결 실패';
+    console.error(e);
+    document.getElementById('conn').textContent = '연결 실패';
+    document.getElementById('conn').classList.add('dead');
+    document.getElementById('beacon').classList.add('dead');
   }
 }
 
-// ============================================
-// 이벤트 핸들러
-// ============================================
-
-// 설정 패널
-document.getElementById('settingsBtn').addEventListener('click', () => {
-  document.getElementById('settingsPanel').classList.add('open');
-  refreshServerUrlText();
-  initAudio(); // 사용자 인터랙션 시 오디오 초기화
-});
-document.getElementById('closeSettings').addEventListener('click', () => {
-  document.getElementById('settingsPanel').classList.remove('open');
-});
-
-// 슬라이더
-const thresholdSlider = document.getElementById('thresholdSlider');
-thresholdSlider.value = settings.threshold;
-document.getElementById('thresholdValue').textContent = settings.threshold + ' ppb';
-thresholdSlider.addEventListener('input', e => {
-  settings.threshold = parseInt(e.target.value);
-  document.getElementById('thresholdValue').textContent = settings.threshold + ' ppb';
-  saveSettings();
-  drawChart();
-});
-
-const volumeSlider = document.getElementById('volumeSlider');
-volumeSlider.value = settings.volume;
-document.getElementById('volumeValue').textContent = settings.volume + '%';
-volumeSlider.addEventListener('input', e => {
-  settings.volume = parseInt(e.target.value);
-  document.getElementById('volumeValue').textContent = settings.volume + '%';
-  saveSettings();
-});
-
-const refreshSlider = document.getElementById('refreshSlider');
-refreshSlider.value = settings.refreshInterval;
-document.getElementById('refreshValue').textContent = settings.refreshInterval + '초';
-refreshSlider.addEventListener('input', e => {
-  settings.refreshInterval = parseInt(e.target.value);
-  document.getElementById('refreshValue').textContent = settings.refreshInterval + '초';
-  saveSettings();
-  restartInterval();
-});
-
-// 알림 토글
-const notifToggle = document.getElementById('notifToggle');
-if (settings.notifications) notifToggle.classList.add('on');
-else notifToggle.classList.remove('on');
-notifToggle.addEventListener('click', () => {
-  settings.notifications = !settings.notifications;
-  if (settings.notifications) {
-    notifToggle.classList.add('on');
-    if (Notification.permission === 'default') Notification.requestPermission();
-  } else {
-    notifToggle.classList.remove('on');
-  }
-  saveSettings();
-});
-
-// 음소거
-const muteBtn = document.getElementById('muteBtn');
-muteBtn.dataset.muted = '0';
-muteBtn.addEventListener('click', () => {
-  const muted = muteBtn.dataset.muted === '1';
-  muteBtn.dataset.muted = muted ? '0' : '1';
-  muteBtn.textContent = muted ? '🔊' : '🔇';
-  if (!muted) muteBtn.classList.remove('active');
-  else muteBtn.classList.add('active');
-});
-
-// 알람 테스트
-document.getElementById('testAlarmBtn').addEventListener('click', () => {
-  initAudio();
-  playAlarm();
-  const banner = document.getElementById('alertBanner');
-  document.getElementById('alertBannerText').textContent = 'TEST · 알람 시스템 작동 중';
-  banner.classList.add('show');
-  setTimeout(() => banner.classList.remove('show'), 3000);
-});
-
-// 계정 표시 / 로그아웃
-function refreshServerUrlText() {
-  const el = document.getElementById('accountName');
-  if (el) el.textContent = (currentUser() || '-') + (isAdmin() ? ' · 관리자' : '');
-
-  const admin = document.getElementById('adminSection');
-  if (admin) {
-    admin.style.display = isAdmin() ? '' : 'none';
-    if (isAdmin()) loadUsers();
-  }
-}
-
-// ============================================
-// 👥 계정 관리 (관리자)
-// ============================================
-async function api(action, params) {
-  const qs = Object.entries(params || {})
-    .map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
-  const r = await fetch(API_URL + '?action=' + action + '&token=' +
-                        encodeURIComponent(getToken()) + (qs ? '&' + qs : '') + '&t=' + Date.now());
-  return r.json();
-}
-
-async function loadUsers() {
-  const box = document.getElementById('userList');
-  if (!box) return;
-  box.textContent = '불러오는 중…';
-  try {
-    const d = await api('users');
-    if (!d.ok) throw new Error(d.error || '불러오기 실패');
-
-    box.innerHTML = d.users.map(u => {
-      const me = u.id === currentUser();
-      const last = u.lastLogin
-        ? new Date(u.lastLogin).toLocaleDateString('ko-KR') + ' 접속'
-        : '접속 기록 없음';
-      return '<div class="user-row">' +
-        '<div><div class="uid">' + u.id + (me ? ' <span style="color:var(--text-faint);font-weight:400">(나)</span>' : '') +
-          ' <span class="role-chip ' + u.role + '">' + (u.role === 'admin' ? '관리자' : '보기') + '</span></div>' +
-          '<div class="meta">' + last + '</div></div>' +
-        '<button class="del-btn" data-id="' + u.id + '"' + (me ? ' disabled' : '') + '>삭제</button>' +
-      '</div>';
-    }).join('') || '<div class="setting-desc">계정이 없습니다.</div>';
-
-    box.querySelectorAll('.del-btn').forEach(b => {
-      b.addEventListener('click', async () => {
-        const id = b.dataset.id;
-        if (!confirm('계정 "' + id + '" 을 삭제할까요?\n이 계정의 로그인도 모두 해제됩니다.')) return;
-        const res = await api('user_del', { id: id });
-        if (!res.ok) { showToast(res.error || '삭제 실패', '⚠', 'error'); return; }
-        showToast('삭제됨: ' + id, '🗑');
-        loadUsers();
-      });
-    });
-  } catch (e) {
-    box.innerHTML = '<div class="setup-error">' + e.message + '</div>';
-  }
-}
-
-async function addUserFromForm() {
-  const idEl = document.getElementById('newUserId');
-  const pwEl = document.getElementById('newUserPw');
-  const roleEl = document.getElementById('newUserRole');
-  const errEl = document.getElementById('userAddError');
-  const id = idEl.value.trim(), pw = pwEl.value;
-
-  errEl.textContent = '';
-  if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
-  if (pw.length < 8) { errEl.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
-
-  const d = await api('user_add', { id: id, pw: pw, role: roleEl.value });
-  if (!d.ok) { errEl.textContent = d.error || '추가 실패'; return; }
-  idEl.value = ''; pwEl.value = '';
-  showToast('계정 추가됨: ' + id, '✅');
-  loadUsers();
-}
-
-async function changePasswordFlow() {
-  const oldPw = prompt('현재 비밀번호를 입력하세요.');
-  if (!oldPw) return;
-  const newPw = prompt('새 비밀번호 (8자 이상)');
-  if (!newPw) return;
-  if (newPw.length < 8) { showToast('8자 이상이어야 합니다', '⚠', 'error'); return; }
-  if (newPw !== prompt('새 비밀번호를 한 번 더 입력하세요.')) {
-    showToast('비밀번호가 서로 다릅니다', '⚠', 'error'); return;
-  }
-  const d = await api('passwd', { old: oldPw, pw: newPw });
-  if (!d.ok) { showToast(d.error || '변경 실패', '⚠', 'error'); return; }
-  alert('비밀번호가 변경되었습니다. 다시 로그인해 주세요.');
-  clearAuth();
-  location.reload();
-}
-
-document.getElementById('addUserBtn').addEventListener('click', addUserFromForm);
-document.getElementById('passwdBtn').addEventListener('click', changePasswordFlow);
-
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  if (confirm('로그아웃할까요?')) doLogout();
-});
-
-// 차트 리사이즈
-window.addEventListener('resize', () => drawChart());
-
-// 알림 권한 요청
-if (Notification.permission === 'default') {
-  setTimeout(() => Notification.requestPermission(), 2000);
-}
-
-// ============================================
-// 🎮 원격 명령 전송
-// ============================================
-function showToast(text, icon = '✓', type = 'success') {
-  const toast = document.getElementById('toast');
-  document.getElementById('toastText').textContent = text;
-  document.getElementById('toastIcon').textContent = icon;
-  toast.className = 'toast show ' + type;
-  setTimeout(() => toast.classList.remove('show'), 4000);
-}
-
-async function sendCommand(cmd, label) {
-  const token = getToken();
-  if (!token) { showLogin(); return; }
-  try {
-    const r = await fetch(API_URL + '?action=setcmd&cmd=' + cmd +
-                          '&token=' + encodeURIComponent(token));
-    showToast(`✅ ${label} 명령 전송됨! 20초 이내 실행`, '🎮', 'success');
-  } catch (e) {
-    showToast('❌ 명령 전송 실패: ' + e.message, '⚠', 'error');
-  }
-}
-
-document.getElementById('restartBtn').addEventListener('click', () => {
-  if (confirm('정말 ESP32를 재시작할까요?\n약 20초 후 실행됩니다.')) {
-    sendCommand('RESTART', '재시작');
-  }
-});
-
-document.getElementById('testAlertCmdBtn').addEventListener('click', () => {
-  sendCommand('TEST_ALERT', '알림 테스트');
-});
-
-document.getElementById('resetBaseBtn').addEventListener('click', () => {
-  if (confirm('기준값(Baseline)을 초기화할까요?\n새로 학습 시작합니다.')) {
-    sendCommand('RESET_BASE', '기준값 리셋');
-  }
-});
-
-// 자동 새로고침
 function restartInterval() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(fetchData, settings.refreshInterval * 1000);
 }
 
-// 시작! — 토큰이 없으면 로그인 화면부터
-if (getToken()) {
+function start() {
+  document.body.classList.add('ready');
   fetchData();
   restartInterval();
+}
+
+// ============================================
+// 기기 명령
+// ============================================
+function toast(msg, bad) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ''; }, 3600);
+}
+
+async function api(action, params) {
+  const qs = Object.entries(params || {}).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+  const r = await fetch(API_URL + '?action=' + action + '&token=' + encodeURIComponent(getToken()) +
+                        (qs ? '&' + qs : '') + '&t=' + Date.now());
+  return r.json();
+}
+
+async function sendCommand(cmd, label) {
+  if (!getToken()) { showAuthGate(); return; }
+  try {
+    await fetch(API_URL + '?action=setcmd&cmd=' + cmd + '&token=' + encodeURIComponent(getToken()));
+    toast(label + ' 명령을 보냈습니다. 20초 안에 실행됩니다.');
+  } catch (e) {
+    toast('명령을 보내지 못했습니다: ' + e.message, true);
+  }
+}
+
+// ============================================
+// 계정 관리
+// ============================================
+async function loadUsers() {
+  const box = document.getElementById('users');
+  box.textContent = '불러오는 중';
+  try {
+    const d = await api('users');
+    if (!d.ok) throw new Error(d.error || '불러오지 못했습니다');
+
+    box.innerHTML = d.users.map(u => {
+      const me = u.id === currentUser();
+      const last = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('ko-KR') + ' 접속' : '접속 기록 없음';
+      return '<div class="user"><div>' +
+        '<div class="uid">' + u.id + (me ? ' (나)' : '') +
+          '<span class="chip' + (u.role === 'admin' ? ' admin' : '') + '">' +
+          (u.role === 'admin' ? '관리자' : '보기') + '</span></div>' +
+        '<div class="meta">' + last + '</div></div>' +
+        '<button class="kill" data-id="' + u.id + '"' + (me ? ' disabled' : '') + '>삭제</button>' +
+      '</div>';
+    }).join('') || '<div class="empty">계정이 없습니다</div>';
+
+    box.querySelectorAll('.kill').forEach(b => b.addEventListener('click', async () => {
+      const id = b.dataset.id;
+      if (!confirm('계정 "' + id + '" 을 삭제할까요?\n이 계정의 로그인도 모두 해제됩니다.')) return;
+      const res = await api('user_del', { id });
+      if (!res.ok) { toast(res.error || '삭제하지 못했습니다', true); return; }
+      toast(id + ' 계정을 삭제했습니다');
+      loadUsers();
+    }));
+  } catch (e) {
+    box.innerHTML = '<div class="err">' + e.message + '</div>';
+  }
+}
+
+async function addUser() {
+  const id = document.getElementById('newId');
+  const pw = document.getElementById('newPw');
+  const role = document.getElementById('newRole');
+  const err = document.getElementById('addErr');
+
+  err.textContent = '';
+  if (!id.value.trim() || !pw.value) { err.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+  if (pw.value.length < 8) { err.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
+
+  const d = await api('user_add', { id: id.value.trim(), pw: pw.value, role: role.value });
+  if (!d.ok) { err.textContent = d.error || '추가하지 못했습니다'; return; }
+  id.value = ''; pw.value = '';
+  toast(d.id + ' 계정을 추가했습니다');
+  loadUsers();
+}
+
+async function changePassword() {
+  const oldPw = prompt('현재 비밀번호');
+  if (!oldPw) return;
+  const newPw = prompt('새 비밀번호 (8자 이상)');
+  if (!newPw) return;
+  if (newPw.length < 8) { toast('비밀번호는 8자 이상이어야 합니다', true); return; }
+  if (newPw !== prompt('새 비밀번호를 한 번 더')) { toast('두 비밀번호가 다릅니다', true); return; }
+
+  const d = await api('passwd', { old: oldPw, pw: newPw });
+  if (!d.ok) { toast(d.error || '변경하지 못했습니다', true); return; }
+  alert('비밀번호를 바꿨습니다. 다시 로그인해 주세요.');
+  clearAuth();
+  location.reload();
+}
+
+// ============================================
+// 이벤트
+// ============================================
+const panel = document.getElementById('panel');
+
+document.getElementById('gearBtn').addEventListener('click', () => {
+  panel.classList.add('open');
+  initAudio();
+  document.getElementById('who').textContent = (currentUser() || '—') + (isAdmin() ? ' · 관리자' : '');
+  const admin = document.getElementById('adminBlock');
+  admin.hidden = !isAdmin();
+  if (isAdmin()) loadUsers();
+});
+document.getElementById('closePanel').addEventListener('click', () => panel.classList.remove('open'));
+addEventListener('keydown', e => { if (e.key === 'Escape') panel.classList.remove('open'); });
+
+function bindSlider(id, key, fmt, after) {
+  const el = document.getElementById(id);
+  const out = document.getElementById(fmt.out);
+  el.value = settings[key];
+  out.textContent = fmt.fn(settings[key]);
+  el.addEventListener('input', e => {
+    settings[key] = parseInt(e.target.value, 10);
+    out.textContent = fmt.fn(settings[key]);
+    saveSettings();
+    if (after) after();
+  });
+}
+bindSlider('thSlider',  'threshold',       { out: 'thVal',  fn: v => v.toLocaleString() + ' ppb' }, () => { drawChart(); fetchData(); });
+bindSlider('volSlider', 'volume',          { out: 'volVal', fn: v => v + '%' });
+bindSlider('refSlider', 'refreshInterval', { out: 'refVal', fn: v => v + '초' }, restartInterval);
+
+function bindToggle(id, key, onOn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('on', !!settings[key]);
+  const flip = () => {
+    settings[key] = !settings[key];
+    el.classList.toggle('on', settings[key]);
+    saveSettings();
+    if (settings[key] && onOn) onOn();
+  };
+  el.addEventListener('click', flip);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+}
+bindToggle('notifToggle', 'notifications', () => {
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+});
+bindToggle('soundToggle', 'sound');
+
+document.getElementById('testAlarm').addEventListener('click', () => { initAudio(); playAlarm(); });
+
+document.getElementById('cmdTest').addEventListener('click', () => sendCommand('TEST_ALERT', '알림 테스트'));
+document.getElementById('cmdBase').addEventListener('click', () => {
+  if (confirm('평상시 기준값을 초기화할까요?\n센서가 처음부터 다시 학습합니다.')) sendCommand('RESET_BASE', '기준값 재학습');
+});
+document.getElementById('cmdRestart').addEventListener('click', () => {
+  if (confirm('기기를 재시작할까요?\n약 20초 뒤에 실행됩니다.')) sendCommand('RESTART', '재시작');
+});
+
+document.getElementById('pwBtn').addEventListener('click', changePassword);
+document.getElementById('outBtn').addEventListener('click', () => { if (confirm('로그아웃할까요?')) doLogout(); });
+document.getElementById('addBtn').addEventListener('click', addUser);
+
+addEventListener('resize', drawChart);
+
+// ============================================
+// 시작
+// ============================================
+if (getToken()) {
+  start();
 } else {
-  document.getElementById('connStatus').textContent = '● 로그인 필요';
-  document.getElementById('liveDot').classList.add('offline');
+  document.body.classList.add('ready');
   showAuthGate();
 }
 </script>
