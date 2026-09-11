@@ -870,6 +870,30 @@ canvas {
 }
 .setup-btn:active { transform: scale(.98); }
 .setup-note { margin-top: 18px; font-size: 11px; color: var(--text-faint); line-height: 1.6; }
+
+/* ===== 계정 관리 ===== */
+.user-list { margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.user-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07); border-radius: 10px;
+}
+.user-row .uid { font-size: 13px; font-weight: 600; }
+.user-row .meta { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+.role-chip {
+  font-size: 9px; font-weight: 700; letter-spacing: .5px; padding: 3px 7px;
+  border-radius: 100px; text-transform: uppercase;
+}
+.role-chip.admin  { background: rgba(191,90,242,.2); color: #bf5af2; }
+.role-chip.viewer { background: rgba(255,255,255,.08); color: var(--text-dim); }
+.del-btn {
+  border: none; background: rgba(255,69,58,.14); color: #ff453a;
+  border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer;
+}
+.del-btn:disabled { opacity: .3; cursor: not-allowed; }
+.user-add { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.user-add .setup-input { font-size: 12px; padding: 11px 13px; }
+.user-add select.setup-input { font-family: inherit; }
 </style>
 </head>
 <body>
@@ -1100,8 +1124,29 @@ canvas {
       <span>👤 계정</span>
       <span class="setting-value" id="accountName">-</span>
     </div>
+    <button class="test-btn" id="passwdBtn"
+            style="margin-top:10px;background:rgba(255,255,255,.06);">비밀번호 변경</button>
     <button class="test-btn" id="logoutBtn"
-            style="margin-top:10px;background:rgba(255,69,58,.14);">로그아웃</button>
+            style="margin-top:8px;background:rgba(255,69,58,.14);">로그아웃</button>
+  </div>
+
+  <!-- 관리자만 보이는 계정 관리 -->
+  <div class="setting-section" id="adminSection" style="margin-top:20px;display:none;">
+    <div class="setting-label"><span>👥 계정 관리</span></div>
+    <div class="setting-desc">이 대시보드에 접속할 수 있는 계정입니다.</div>
+    <div id="userList" class="user-list">불러오는 중…</div>
+
+    <div class="user-add">
+      <input id="newUserId" class="setup-input" spellcheck="false" placeholder="새 아이디">
+      <input id="newUserPw" class="setup-input" type="password" placeholder="비밀번호 (8자 이상)">
+      <select id="newUserRole" class="setup-input">
+        <option value="viewer">보기 전용</option>
+        <option value="admin">관리자</option>
+      </select>
+      <div id="userAddError" class="setup-error"></div>
+      <button class="test-btn" id="addUserBtn"
+              style="background:rgba(0,212,170,.16);">계정 추가</button>
+    </div>
   </div>
 </div>
 
@@ -1119,15 +1164,94 @@ let refreshTimer = null;   // showLogin 이 먼저 참조하므로 여기서 선
 
 const TOKEN_KEY = 'vapeGuardToken';
 const USER_KEY  = 'vapeGuardUser';
+const ROLE_KEY  = 'vapeGuardRole';
 
 function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
-function setAuth(token, id) {
-  try { localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(USER_KEY, id || ""); } catch (e) {}
+function setAuth(token, id, role) {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, id || "");
+    localStorage.setItem(ROLE_KEY, role || "viewer");
+  } catch (e) {}
 }
+function currentRole() { try { return localStorage.getItem(ROLE_KEY) || "viewer"; } catch (e) { return "viewer"; } }
+function isAdmin() { return currentRole() === 'admin'; }
 function clearAuth() {
-  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch (e) {}
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(ROLE_KEY);
+  } catch (e) {}
 }
 function currentUser() { try { return localStorage.getItem(USER_KEY) || ""; } catch (e) { return ""; } }
+
+// 계정이 하나도 없으면 "관리자 만들기", 있으면 "로그인" 화면
+async function showAuthGate() {
+  let needSetup = false;
+  try {
+    const r = await fetch(API_URL + '?action=status&t=' + Date.now());
+    const d = await r.json();
+    needSetup = !!d.needSetup;
+  } catch (e) { /* 서버가 안 되면 그냥 로그인 화면 */ }
+  needSetup ? showRegister() : showLogin();
+}
+
+function showRegister() {
+  if (document.getElementById('loginOverlay')) return;
+  if (refreshTimer) clearInterval(refreshTimer);
+
+  const el = document.createElement('div');
+  el.id = 'loginOverlay';
+  el.innerHTML =
+    '<div class="setup-box">' +
+      '<div class="setup-icon">🛡</div>' +
+      '<div class="setup-title">관리자 계정 만들기</div>' +
+      '<div class="setup-sub">계정이 아직 없습니다. 처음 만드는 계정이 관리자가 됩니다.</div>' +
+      '<input id="regId" class="setup-input" spellcheck="false" autocomplete="username" placeholder="아이디">' +
+      '<input id="regPw" class="setup-input" type="password" autocomplete="new-password" ' +
+        'placeholder="비밀번호 (8자 이상)" style="margin-top:10px;">' +
+      '<input id="regPw2" class="setup-input" type="password" autocomplete="new-password" ' +
+        'placeholder="비밀번호 확인" style="margin-top:10px;">' +
+      '<div id="regError" class="setup-error"></div>' +
+      '<button id="regBtn" class="setup-btn">만들고 시작하기</button>' +
+      '<div class="setup-note">이 화면은 계정이 하나도 없을 때만 나타납니다.<br>' +
+        '계정이 생기면 이 통로는 영구히 닫힙니다.</div>' +
+    '</div>';
+  document.body.appendChild(el);
+
+  const idEl = document.getElementById('regId');
+  const pwEl = document.getElementById('regPw');
+  const pw2El = document.getElementById('regPw2');
+  const errEl = document.getElementById('regError');
+  const btn = document.getElementById('regBtn');
+  idEl.focus();
+
+  async function submit() {
+    const id = idEl.value.trim(), pw = pwEl.value;
+    if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+    if (pw.length < 8) { errEl.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
+    if (pw !== pw2El.value) { errEl.textContent = '비밀번호가 서로 다릅니다.'; return; }
+
+    btn.disabled = true; btn.textContent = '만드는 중…'; errEl.textContent = '';
+    try {
+      const r = await fetch(API_URL + '?action=register&id=' + encodeURIComponent(id) +
+                            '&pw=' + encodeURIComponent(pw) + '&t=' + Date.now());
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || '생성 실패');
+      setAuth(d.token, d.id, d.role);
+      el.remove();
+      fetchData();
+      restartInterval();
+    } catch (e) {
+      errEl.textContent = e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = '만들고 시작하기';
+    }
+  }
+  btn.addEventListener('click', submit);
+  [idEl, pwEl, pw2El].forEach(x =>
+    x.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+}
 
 function showLogin(message) {
   if (document.getElementById('loginOverlay')) return;
@@ -1166,7 +1290,7 @@ function showLogin(message) {
                             '&pw=' + encodeURIComponent(pw) + '&t=' + Date.now());
       const d = await r.json();
       if (!d.ok) throw new Error(d.error || '로그인 실패');
-      setAuth(d.token, d.id);
+      setAuth(d.token, d.id, d.role);
       el.remove();
       fetchData();
       restartInterval();
@@ -1667,8 +1791,99 @@ document.getElementById('testAlarmBtn').addEventListener('click', () => {
 // 계정 표시 / 로그아웃
 function refreshServerUrlText() {
   const el = document.getElementById('accountName');
-  if (el) el.textContent = currentUser() || '-';
+  if (el) el.textContent = (currentUser() || '-') + (isAdmin() ? ' · 관리자' : '');
+
+  const admin = document.getElementById('adminSection');
+  if (admin) {
+    admin.style.display = isAdmin() ? '' : 'none';
+    if (isAdmin()) loadUsers();
+  }
 }
+
+// ============================================
+// 👥 계정 관리 (관리자)
+// ============================================
+async function api(action, params) {
+  const qs = Object.entries(params || {})
+    .map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+  const r = await fetch(API_URL + '?action=' + action + '&token=' +
+                        encodeURIComponent(getToken()) + (qs ? '&' + qs : '') + '&t=' + Date.now());
+  return r.json();
+}
+
+async function loadUsers() {
+  const box = document.getElementById('userList');
+  if (!box) return;
+  box.textContent = '불러오는 중…';
+  try {
+    const d = await api('users');
+    if (!d.ok) throw new Error(d.error || '불러오기 실패');
+
+    box.innerHTML = d.users.map(u => {
+      const me = u.id === currentUser();
+      const last = u.lastLogin
+        ? new Date(u.lastLogin).toLocaleDateString('ko-KR') + ' 접속'
+        : '접속 기록 없음';
+      return '<div class="user-row">' +
+        '<div><div class="uid">' + u.id + (me ? ' <span style="color:var(--text-faint);font-weight:400">(나)</span>' : '') +
+          ' <span class="role-chip ' + u.role + '">' + (u.role === 'admin' ? '관리자' : '보기') + '</span></div>' +
+          '<div class="meta">' + last + '</div></div>' +
+        '<button class="del-btn" data-id="' + u.id + '"' + (me ? ' disabled' : '') + '>삭제</button>' +
+      '</div>';
+    }).join('') || '<div class="setting-desc">계정이 없습니다.</div>';
+
+    box.querySelectorAll('.del-btn').forEach(b => {
+      b.addEventListener('click', async () => {
+        const id = b.dataset.id;
+        if (!confirm('계정 "' + id + '" 을 삭제할까요?\n이 계정의 로그인도 모두 해제됩니다.')) return;
+        const res = await api('user_del', { id: id });
+        if (!res.ok) { showToast(res.error || '삭제 실패', '⚠', 'error'); return; }
+        showToast('삭제됨: ' + id, '🗑');
+        loadUsers();
+      });
+    });
+  } catch (e) {
+    box.innerHTML = '<div class="setup-error">' + e.message + '</div>';
+  }
+}
+
+async function addUserFromForm() {
+  const idEl = document.getElementById('newUserId');
+  const pwEl = document.getElementById('newUserPw');
+  const roleEl = document.getElementById('newUserRole');
+  const errEl = document.getElementById('userAddError');
+  const id = idEl.value.trim(), pw = pwEl.value;
+
+  errEl.textContent = '';
+  if (!id || !pw) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+  if (pw.length < 8) { errEl.textContent = '비밀번호는 8자 이상이어야 합니다.'; return; }
+
+  const d = await api('user_add', { id: id, pw: pw, role: roleEl.value });
+  if (!d.ok) { errEl.textContent = d.error || '추가 실패'; return; }
+  idEl.value = ''; pwEl.value = '';
+  showToast('계정 추가됨: ' + id, '✅');
+  loadUsers();
+}
+
+async function changePasswordFlow() {
+  const oldPw = prompt('현재 비밀번호를 입력하세요.');
+  if (!oldPw) return;
+  const newPw = prompt('새 비밀번호 (8자 이상)');
+  if (!newPw) return;
+  if (newPw.length < 8) { showToast('8자 이상이어야 합니다', '⚠', 'error'); return; }
+  if (newPw !== prompt('새 비밀번호를 한 번 더 입력하세요.')) {
+    showToast('비밀번호가 서로 다릅니다', '⚠', 'error'); return;
+  }
+  const d = await api('passwd', { old: oldPw, pw: newPw });
+  if (!d.ok) { showToast(d.error || '변경 실패', '⚠', 'error'); return; }
+  alert('비밀번호가 변경되었습니다. 다시 로그인해 주세요.');
+  clearAuth();
+  location.reload();
+}
+
+document.getElementById('addUserBtn').addEventListener('click', addUserFromForm);
+document.getElementById('passwdBtn').addEventListener('click', changePasswordFlow);
+
 document.getElementById('logoutBtn').addEventListener('click', () => {
   if (confirm('로그아웃할까요?')) doLogout();
 });
@@ -1733,7 +1948,7 @@ if (getToken()) {
 } else {
   document.getElementById('connStatus').textContent = '● 로그인 필요';
   document.getElementById('liveDot').classList.add('offline');
-  showLogin();
+  showAuthGate();
 }
 </script>
 </body>
